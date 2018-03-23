@@ -1,5 +1,5 @@
 # HomA - Garage
-This component is an ESP8266 project of a garage unit (e.g. to check garage door status, switch the pump of the well, and so on). 
+This component is an ESP8266 project of a garage unit (e.g. to check garage door status, switch the pump of the cistern, and so on). 
 
 ### Basic Requirements
 * ESP8266 board, e.g. ESP12E (ebay)
