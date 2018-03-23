@@ -1,3 +1,24 @@
+# Eagle backup files
+*.s#?
+*.b#?
+*.l#?
+
+# Eclipse project files
+.cproject
+.project
+.settings/
+
+# Python compiled files
+*.pyc
+
+# secret config files
+mqtt_config.py
+user_secret.h
+
+# ESP8266 build directories
+build/
+firmware/
+
 # Prerequisites
 *.d
 
