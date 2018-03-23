@@ -1,0 +1,9 @@
+[submodule "garage/wiringESP"]
+	path = garage/wiringESP
+	url = https://github.com/hmueller01/wiringESP.git
+[submodule "rcplugs-esp/wiringESP"]
+	path = rcplugs-esp/wiringESP
+	url = https://github.com/hmueller01/wiringESP.git
+[submodule "rcplugs-esp/rc-switch"]
+	path = rcplugs-esp/rc-switch
+	url = https://github.com/hmueller01/rc-switch
