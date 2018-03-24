@@ -28,7 +28,7 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 
 #include "user_config.h"
 #include "user_common.h"
-#include "user_upgrade.h"
+#include "ota_upgrade.h"
 #include "mqtt/mqtt.h"
 #include "mqtt/utils.h"
 #include "mqtt/debug.h"
