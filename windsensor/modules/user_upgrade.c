@@ -5,13 +5,14 @@
  * Thanks to Martin
  * https://harizanov.com/2015/06/firmware-over-the-air-fota-for-esp8266-soc/
  */
+#include <osapi.h>
+#include <user_interface.h>
+#include <mem.h>
+#include <espconn.h>
+#include <upgrade.h>
+
 #include "user_config.h"
 #include "user_upgrade.h"
-#include "osapi.h"
-#include "user_interface.h"
-#include "mem.h"
-#include "espconn.h"
-#include "upgrade.h"
 #include "mqtt/debug.h"
 #include "mqtt/utils.h"
 
