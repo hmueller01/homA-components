@@ -19,9 +19,9 @@
 #define HOMA_HOME		"Home"
 
 // configuration of interrupt driven GPIO ports (see wiringESP.c)
-#define WPS_PIN		14
-#define DOOR_PIN		12
-#define CISTERN_PIN	13
+#define PIN_WPS		14
+#define PIN_DOOR	12
+#define PIN_CISTERN	13
 
 #define USE_OPTIMIZE_PRINTF
 #define ERROR(format, ...) os_printf(format, ## __VA_ARGS__)

@@ -190,7 +190,7 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, 1);
-	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(DOOR_PIN));
+	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/type", "switch", 6, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, 1);
 	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 2);
@@ -445,7 +445,7 @@ WpsLongPress_Cb(void *arg)
 LOCAL void ICACHE_FLASH_ATTR
 WpsPinChange_Cb(void)
 {
-	if (0 == digitalRead(WPS_PIN)) {
+	if (0 == digitalRead(PIN_WPS)) {
 		// key is pressed, wait 5s if key is still pressed
 		os_timer_disarm(&wps_timer);
 		os_timer_setfn(&wps_timer, (os_timer_func_t *)WpsLongPress_Cb, NULL);
@@ -474,7 +474,7 @@ DoorPinChange_Cb(void)
 	// Keep the Interrupt Service Routine (ISR) / callback short.
 	// Do not use “serial print” commands in an ISR. These can hang the system.
 	//INFO("%s: Pin is %d" CRLF, __FUNCTION__, digitalRead(DOOR_PIN));
-	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(DOOR_PIN));
+	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
 }
 
 /**
@@ -497,7 +497,7 @@ Main_Task(os_event_t *event_p)
 		INFO("%s: Got signal 'SIG_CISTERN'. par=%d" CRLF, __FUNCTION__, event_p->par);
 		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern",
 				event_p->par == ON ? "1" : "0", 1, 1, 1);
-		digitalWrite(CISTERN_PIN, event_p->par);
+		digitalWrite(PIN_CISTERN, event_p->par);
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
@@ -557,10 +557,10 @@ user_init(void)
 	system_os_task(Main_Task, MAIN_TASK_PRIO, main_task_queue, MAIN_TASK_QUEUE_LEN);
 
 	// setup needed GPIO pins
-	attachInterrupt(WPS_PIN, WpsPinChange_Cb, CHANGE);
-	attachInterrupt(DOOR_PIN, DoorPinChange_Cb, CHANGE);
-	pinMode(CISTERN_PIN, OUTPUT);
-	digitalWrite(CISTERN_PIN, OFF);
+	attachInterrupt(PIN_WPS, WpsPinChange_Cb, CHANGE);
+	attachInterrupt(PIN_DOOR, DoorPinChange_Cb, CHANGE);
+	pinMode(PIN_CISTERN, OUTPUT);
+	digitalWrite(PIN_CISTERN, OFF);
 
 	// setup MQTT
 	//MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
