@@ -1,14 +1,21 @@
+/**
+ * @file
+ * @brief Configure IoT device here
+ * @author hmueller
+ */
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
 #define APP_VERSION 7
 
-#define WPS						// enable WPS
+// define DEBUG_ON to show debug output
+#define DEBUG_ON
 
-// MQTT settings see mqtt_config.h
-#include "mqtt_config.h"
+// define to enable WPS
+#define WPS
 
-#define OTA_HOST "update.euhm"	// IP or domain name
+// configure FOTA IP or domain name, port and path on server
+#define OTA_HOST "update.euhm"
 #define OTA_PORT 80
 #define OTA_PATH "/esp8266fw/garage/"
 
@@ -18,14 +25,15 @@
 #define HOMA_ROOM		"Garage"
 #define HOMA_HOME		"Home"
 
-// configuration of interrupt driven GPIO ports (see wiringESP.c)
+// configuration of GPIO ports (see wiringESP.c)
 #define PIN_WPS		14
 #define PIN_DOOR	12
 #define PIN_CISTERN	13
 
 #define USE_OPTIMIZE_PRINTF
-#define ERROR(format, ...) os_printf(format, ## __VA_ARGS__)
-#define CRLF "\r\n"
+
+// MQTT settings see mqtt_config.h
+#include "mqtt_config.h"
 
 #endif
 

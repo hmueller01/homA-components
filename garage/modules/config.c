@@ -34,10 +34,9 @@
 #include "osapi.h"
 #include "user_interface.h"
 
+#include "user_common.h"
 #include "mqtt.h"
 #include "config.h"
-#include "user_config.h"
-#include "debug.h"
 
 SYSCFG sysCfg;
 SAVE_FLAG saveFlag;

@@ -31,7 +31,6 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 #include "ota_upgrade.h"
 #include "mqtt/mqtt.h"
 #include "mqtt/utils.h"
-#include "mqtt/debug.h"
 #include "config.h"
 #include "wifi.h"
 #include "dst.h"
