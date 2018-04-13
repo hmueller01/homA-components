@@ -6608,7 +6608,7 @@ MICRONAS HAL556</description>
 <part name="GND11" library="supply1" deviceset="GND" device=""/>
 <part name="GND12" library="supply1" deviceset="GND" device=""/>
 <part name="C1" library="rcl" deviceset="C-EU" device="C0805" value="1µ"/>
-<part name="C2" library="rcl" deviceset="C-EU" device="C0805" value="1µ"/>
+<part name="C2" library="rcl" deviceset="C-EU" device="C0805" value="10µ"/>
 <part name="GND8" library="supply1" deviceset="GND" device=""/>
 <part name="GND14" library="supply1" deviceset="GND" device=""/>
 <part name="S3" library="mr-switch" deviceset="TS1" device="" value="BOOT"/>
