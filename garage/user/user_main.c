@@ -26,7 +26,6 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 #include <time.h>
 #include <sntp.h>
 
-#include "user_config.h"
 #include "user_common.h"
 #include "ota_upgrade.h"
 #include "mqtt/mqtt.h"

@@ -6,7 +6,7 @@ This component is an ESP8266 project to measure the wind speed by pulses from an
 * An anemometer which creates switched pulses while rotating
 
 ### Installation
-* Build a board based on the [schematics](schematics/windsensor-esp12-v001.pdf) given
+* Build a board based on the [schematics](schematics/windsensor-esp12-v002.pdf) given
 * Install the cross compiler [esp-open-sdk](https://github.com/pfalcon/esp-open-sdk)
 * Install the [ESP8266 SDK](https://github.com/espressif/ESP8266_NONOS_SDK)
 * Modify ```Makefile```, ```include/user_config.h``` and ```include/mqtt_config.h``` to your needs.
