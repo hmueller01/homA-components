@@ -1,7 +1,7 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 21
+#define APP_VERSION 22
 
 #define WPS						// enable WPS
 
@@ -19,9 +19,9 @@
 
 // definitions of the wind speed sensor (e.g. "Schalenanemometer")
 #define SPEED_TB	1	// time base[s] of measurement (speed_timer)
-#define CIRCUM	0.434	// circumference[m] of anemometer
+#define CIRCUM	0.314	// mean circumference[m] of anemometer
 #define TSR		0.4		// Schnelllaufzahl (SLZ) / tip speed ratio (TSR)
-#define PPR		2		// pulses per rotation (speed_count per rotation)
+#define PPR		1		// pulses per rotation (speed_count per rotation)
 
 // configuration of interrupt driven GPIO ports (see key.c)
 #define KEY_NUM			2
