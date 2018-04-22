@@ -37,8 +37,8 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 
 // global variables
 LOCAL MQTT_Client mqttClient;
-LOCAL bool mqtt_connected = false;
-LOCAL bool send_start_time = false;
+LOCAL bool mqtt_connected = FALSE;
+LOCAL bool send_start_time = FALSE;
 LOCAL uint16_t server_version;
 LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
@@ -153,8 +153,8 @@ CheckSntpStamp_Cb(void *arg)
 		INFO("sntp: %d, %s" CRLF, current_stamp, time_str);
 		MQTT_Publish(&mqttClient,
 			"/devices/" HOMA_SYSTEM_ID "/controls/Start time",
-			time_str, os_strlen(time_str), 1, 1);
-		send_start_time = true; // do not resend start time until we reboot
+			time_str, os_strlen(time_str), 1, TRUE);
+		send_start_time = TRUE; // do not resend start time until we reboot
 	}
 }
 
@@ -176,46 +176,47 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Client *client = (MQTT_Client *) args;
 
 	INFO("MQTT: Connected" CRLF);
-	mqtt_connected = true;
+	mqtt_connected = TRUE;
 
-	MQTT_Subscribe(client, "/sys/" HOMA_SYSTEM_ID "/#", 2);
+	MQTT_Subscribe(client, "/sys/" HOMA_SYSTEM_ID "/#", 1);
 
 	// setup HomA device topics
 	//MQTT_Publish(*client, topic, data, data_length, qos, retain)
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, TRUE);
 	
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
 	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/type", "switch", 6, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, 1);
-	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 2);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern", "0", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/type", "switch", 6, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
+	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern",
+			digitalRead(PIN_CISTERN) == OFF ? "0" : "1", 1, 1, TRUE);
 
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/order", "1", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/order", "2", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "3", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "4", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "5", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "6", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/order", "1", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/order", "2", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "3", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "4", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "5", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "6", 1, 1, TRUE);
 	
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
-		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, 1);
+		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, TRUE);
 	itoa(app_version, APP_VERSION);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version",
-		app_version, os_strlen(app_version), 1, 1);
+		app_version, os_strlen(app_version), 1, TRUE);
 	rst_reason = (char *) rst_reason_text[system_get_rst_info()->reason];
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason",
-		rst_reason, os_strlen(rst_reason), 1, 1);
+		rst_reason, os_strlen(rst_reason), 1, TRUE);
 
 	// do only resend start time if we reboot,
 	// do not if we got a Wifi reconnect ...
 	if (!send_start_time) {
 		os_timer_disarm(&sntp_timer);
 		os_timer_setfn(&sntp_timer, (os_timer_func_t *)CheckSntpStamp_Cb, NULL);
-		os_timer_arm(&sntp_timer, 100, true);
+		os_timer_arm(&sntp_timer, 100, TRUE);
 	}
 }
 
@@ -233,7 +234,7 @@ MqttDisconnected_Cb(uint32_t * args)
 {
 	MQTT_Client *client = (MQTT_Client *) args;
 	INFO("MQTT: Disconnected" CRLF);
-	mqtt_connected = false;
+	mqtt_connected = FALSE;
 }
 
 /**
@@ -289,7 +290,7 @@ MqttData_Cb(uint32_t *args, const char *topic_raw, uint32_t topic_len, const cha
 			// tell user that upgrade is in progress
 			os_sprintf(versionBuf, "upgrading to %d", server_version);
 			MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version",
-				versionBuf, os_strlen(versionBuf), 1, 1);
+				versionBuf, os_strlen(versionBuf), 1, TRUE);
 			// do the main work in a Task, not here in the callback
 			system_os_post(MAIN_TASK_PRIO, SIG_UPGRADE, 0);
 		}
@@ -494,17 +495,17 @@ Main_Task(os_event_t *event_p)
 	case SIG_CISTERN:
 		INFO("%s: Got signal 'SIG_CISTERN'. par=%d" CRLF, __FUNCTION__, event_p->par);
 		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern",
-				event_p->par == ON ? "1" : "0", 1, 1, 1);
+				event_p->par == ON ? "1" : "0", 1, 1, TRUE);
 		digitalWrite(PIN_CISTERN, event_p->par);
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
 		if (0 == event_p->par) {
 			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-					"open", 4, 1, 1);
+					"closed", 6, 1, TRUE);
 		} else {
 			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-					"closed", 6, 1, 1);
+					"open", 4, 1, TRUE);
 		}
 		break;
 	case SIG_UPGRADE:
@@ -537,8 +538,8 @@ user_init(void)
 	INFO("Garage version %d" CRLF, APP_VERSION);
 	INFO("Reset reason: %s" CRLF, rst_reason_text[system_get_rst_info()->reason]);
 
-	mqtt_connected = false;
-	send_start_time = false;
+	mqtt_connected = FALSE;
+	send_start_time = FALSE;
 	CFG_Load();
 
 #ifdef WPS
@@ -564,8 +565,8 @@ user_init(void)
 	//MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
 	MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, MQTT_SECURITY);
 	//MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
-	MQTT_InitClient(&mqttClient, sysCfg.device_id, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, 1);
-	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
+	MQTT_InitClient(&mqttClient, sysCfg.device_id, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, FALSE);
+	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, FALSE);
 	MQTT_OnConnected(&mqttClient, MqttConnected_Cb);
 	MQTT_OnDisconnected(&mqttClient, MqttDisconnected_Cb);
 	MQTT_OnPublished(&mqttClient, MqttPublished_Cb);
