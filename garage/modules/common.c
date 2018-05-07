@@ -1,10 +1,11 @@
 /**
  * @file
- * @brief Common user functions
+ * @brief Common functions
  */
 #include <osapi.h>
 #include <stdlib.h>
-#include "user_common.h"
+
+#include "common.h"
 
 
 /**
