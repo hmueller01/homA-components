@@ -6,7 +6,7 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 11
+#define APP_VERSION 12
 
 // define DEBUG_ON to show debug output
 #define DEBUG_ON
@@ -26,9 +26,17 @@
 #define HOMA_HOME		"Home"
 
 // configuration of GPIO ports (see wiringESP.c)
-#define PIN_WPS		14
-#define PIN_DOOR	12
-#define PIN_CISTERN	13
+#define PIN_SDA 0
+#define PIN_SCL 2
+#define PIN_WPS 14
+#define PIN_DOOR 12
+#define PIN_CISTERN 13
+
+// configuration of MCP23017 GPIO ports
+#define CISTERN_LVL_BTN 14
+
+// configuration of cistern level read frequency
+#define CISTERN_TIMER (1 * 60 * 1000)
 
 #define USE_OPTIMIZE_PRINTF
 

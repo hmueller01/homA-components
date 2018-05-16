@@ -18,6 +18,9 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 - All interrupt handlers must not have the ICACHE_FLASH_ATTR decorator and any code which executes very often should not have the decorator.
 */
 
+// C++ wrapper
+extern "C" {
+// put C includes inside here to avoid undefined references by linker.
 #include <ets_sys.h>
 #include <osapi.h>
 #include <gpio.h>
@@ -26,22 +29,28 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 #include <time.h>
 #include <sntp.h>
 
-#include "user_common.h"
+#include "user_config.h"
+#include "common.h"
 #include "ota_upgrade.h"
-#include "mqtt/mqtt.h"
-#include "mqtt/utils.h"
+#include "mqtt_config.h"
+#include "mqtt.h"
+#include "utils.h"
 #include "config.h"
 #include "wifi.h"
 #include "dst.h"
 #include "wiringESP.h"
+#include "mcp23017.h"
+}
 
 // global variables
+LOCAL mcp23017 m_mcp23017;
 LOCAL MQTT_Client mqttClient;
 LOCAL bool mqtt_connected = FALSE;
 LOCAL bool send_start_time = FALSE;
 LOCAL uint16_t server_version;
 LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
+LOCAL os_timer_t cistern_timer; // timer to read cistern level
 #define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
@@ -49,7 +58,8 @@ LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
 enum sig_main_task {
 	SIG_CISTERN = 0,
 	SIG_DOOR_CHANGE,
-	SIG_UPGRADE
+	SIG_UPGRADE,
+	SIG_CISTERN_LVL,
 };
 const char *rst_reason_text[] = {
 	"normal startup by power on", // REASON_DEFAULT_RST = 0
@@ -160,6 +170,29 @@ CheckSntpStamp_Cb(void *arg)
 
 /**
  ******************************************************************
+ * @brief  Cistern loop timer callback.
+ * @author Holger Mueller
+ * @date   2018-05-11, 2018-05-16
+ *
+ * @param  arg - NULL, not used.
+ ******************************************************************
+ */
+LOCAL void ICACHE_FLASH_ATTR
+CisternTimer_Cb(void *arg)
+{
+	bool ret;
+
+	os_timer_disarm(&cistern_timer);
+	// read the level in main task
+	ret = system_os_post(MAIN_TASK_PRIO, SIG_CISTERN_LVL, 0);
+	if (!ret) {
+		DEBUG("%s: system_os_post() failed, retry in 99 ms" CRLF, __FUNCTION__);
+		os_timer_arm(&cistern_timer, 99, FALSE);
+	}
+}
+
+/**
+ ******************************************************************
  * @brief  MQTT callback broker connected.
  * @author Holger Mueller
  * @date   2018-03-15
@@ -194,13 +227,20 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern",
 			digitalRead(PIN_CISTERN) == OFF ? "0" : "1", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/type", "text", 4, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/unit", " %%", 2, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
+	os_timer_disarm(&cistern_timer);
+	os_timer_setfn(&cistern_timer, (os_timer_func_t *)CisternTimer_Cb, NULL);
+	os_timer_arm(&cistern_timer, 95, FALSE); // we can not post two signals to the same task at the same time, so delay this a bit
 
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/order", "1", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/order", "2", 1, 1, TRUE);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "3", 1, 1, TRUE);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "4", 1, 1, TRUE);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "5", 1, 1, TRUE);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "6", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/order", "3", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "4", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "5", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "6", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "7", 1, 1, TRUE);
 	
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
 		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, TRUE);
@@ -480,7 +520,7 @@ DoorPinChange_Cb(void)
  ******************************************************************
  * @brief  Main task for publishing data.
  * @author Holger Mueller
- * @date   2018-03-15
+ * @date   2018-03-15, 2018-05-16
  *
  * @param  *event_p - message queue pointer set by system_os_post().
  ******************************************************************
@@ -488,8 +528,9 @@ DoorPinChange_Cb(void)
 LOCAL void ICACHE_FLASH_ATTR
 Main_Task(os_event_t *event_p)
 {
-	float windspeed;
-	char speed_str[20];
+	uint16_t cistern_lvl;
+	uint8_t cistern_percent;
+	char cistern_str[10];
 
 	switch (event_p->sig) {
 	case SIG_CISTERN:
@@ -515,6 +556,30 @@ Main_Task(os_event_t *event_p)
 		}
 		server_version = 0; // reset server version
 		break;
+	case SIG_CISTERN_LVL:
+		INFO("%s: Got signal 'SIG_CISTERN_LVL'." CRLF, __FUNCTION__);
+		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, ON);
+		//delay(100); // wait 100 ms
+		cistern_lvl = m_mcp23017.digitalRead16() & 0x03FF;
+		INFO("MCP23017 cistern_lvl=%x" CRLF, cistern_lvl);
+		//INFO("%s: digitalWrite(CISTERN_LVL_BTN, OFF)" CRLF, __FUNCTION__);
+		//m_mcp23017.digitalWrite(CISTERN_LVL_BTN, OFF);
+		cistern_percent = 0;
+		while (cistern_lvl & 0x01) {
+			cistern_percent++;
+			cistern_lvl = cistern_lvl >> 1;
+		}
+		cistern_percent = cistern_percent * 10;
+		itoa(cistern_str, cistern_percent);
+		INFO("MCP23017 cistern_percent=%s" CRLF, cistern_str);
+		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level",
+			cistern_str, os_strlen(cistern_str), 1, TRUE);
+
+		os_timer_disarm(&cistern_timer);
+		os_timer_setfn(&cistern_timer, (os_timer_func_t *)CisternTimer_Cb, NULL);
+		os_timer_arm(&cistern_timer, CISTERN_TIMER, FALSE);
+
+		break;
 	default:
 		ERROR("%s: Unknown signal %d." CRLF, __FUNCTION__, event_p->sig);
 		break;
@@ -526,7 +591,7 @@ Main_Task(os_event_t *event_p)
  ******************************************************************
  * @brief  Main user init function.
  * @author Holger Mueller
- * @date   2018-03-15
+ * @date   2018-03-15, 2018-05-11
  ******************************************************************
  */
 void ICACHE_FLASH_ATTR
@@ -534,9 +599,10 @@ user_init(void)
 {
 	// if you do not set the uart, ESP8266 will start with 74880 baud :-(
 	//uart_div_modify(0, UART_CLK_FREQ / 115200);
-	INFO(CRLF CRLF "SDK version: %s" CRLF, system_get_sdk_version());
-	INFO("Garage version %d" CRLF, APP_VERSION);
+	INFO("SDK version: %s" CRLF, system_get_sdk_version());
 	INFO("Reset reason: %s" CRLF, rst_reason_text[system_get_rst_info()->reason]);
+	INFO("Garage version: %d" CRLF, APP_VERSION);
+	INFO("HomA device ID: %s" CRLF, HOMA_SYSTEM_ID);
 
 	mqtt_connected = FALSE;
 	send_start_time = FALSE;
@@ -571,6 +637,12 @@ user_init(void)
 	MQTT_OnDisconnected(&mqttClient, MqttDisconnected_Cb);
 	MQTT_OnPublished(&mqttClient, MqttPublished_Cb);
 	MQTT_OnData(&mqttClient, MqttData_Cb);
+
+	// setup MCP23017 GPIO expander
+	INFO("MCP23017 setup ..." CRLF);
+	m_mcp23017 = mcp23017(PIN_SDA, PIN_SCL, 0xFF, 0xFF, 0xFF, 0x03, 0xFF, 0x03);
+	m_mcp23017.pinMode(CISTERN_LVL_BTN, MCP23017_OUTPUT);
+	m_mcp23017.dumpRegs();
 
 	INFO("System started." CRLF CRLF);
 }
