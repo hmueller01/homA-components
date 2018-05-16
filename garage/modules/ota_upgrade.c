@@ -14,7 +14,7 @@
 #include "common.h"
 #include "user_config.h"
 #include "ota_upgrade.h"
-#include "mqtt/utils.h"
+#include "utils.h"
 
 // global variables
 LOCAL struct espconn gethostname_conn;
