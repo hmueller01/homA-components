@@ -75,13 +75,14 @@ FLASH_SIZE	?= 4096
 
 # which modules (subdirectories) of the project to include in compiling
 MODULES		= modules mqtt user wiringESP
-EXTRA_INCDIR	= include include/modules include/mqtt wiringESP
+EXTRA_INCDIR	= include modules mqtt wiringESP
 
 # libraries used in this project, mainly provided by the SDK
 LIBS		= c gcc hal pp phy net80211 lwip wpa wps crypto upgrade main
 
 # compiler flags using during compilation of source files
-CFLAGS		= -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wmissing-prototypes -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH
+CFLAGS		= -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH
+CXXFLAGS	= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++11
 
 # linker flags used to generate the main object file
 LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
@@ -124,6 +125,7 @@ system_id	:= $(shell grep "^\#define HOMA_SYSTEM_ID" include/user_config.h | sed
 
 # set tools to use as compiler, librarian and linker
 CC			:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
+CXX			:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-g++
 AR			:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-ar
 LD			:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
 OBJCOPY		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-objcopy
@@ -139,8 +141,10 @@ BUILD_DIR	:= $(addprefix $(BUILD_BASE)/,$(MODULES))
 SDK_LIBDIR	:= $(addprefix $(SDK_BASE)/,$(SDK_LIBDIR))
 SDK_INCDIR	:= $(addprefix -I$(SDK_BASE)/,$(SDK_INCDIR))
 
-SRC			:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c))
-OBJ			:= $(patsubst %.c,$(BUILD_BASE)/%.o,$(SRC))
+SRC		:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c*))
+C_OBJ		:= $(patsubst %.c,%.o,$(SRC))
+CXX_OBJ		:= $(patsubst %.cpp,%.o,$(C_OBJ))
+OBJ		:= $(patsubst %.o,$(BUILD_BASE)/%.o,$(CXX_OBJ))
 LIBS		:= $(addprefix -l,$(LIBS))
 APP_AR		:= $(addprefix $(BUILD_BASE)/,$(TARGET)_app.a)
 TARGET_OUT	:= $(addprefix $(BUILD_BASE)/,$(TARGET).out)
@@ -181,11 +185,15 @@ else
 endif
 
 vpath %.c $(SRC_DIR)
+vpath %.cpp $(SRC_DIR)
 
 define compile-objects
 $1/%.o: %.c
 	$(vecho) "CC $$<"
 	$(Q) $(CC) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CFLAGS) -c $$< -o $$@
+$1/%.o: %.cpp
+	$(vecho) "C+ $$<"
+	$(Q) $(CXX) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CXXFLAGS)  -c $$< -o $$@
 endef
 
 .PHONY: all checkdirs flash clean connect publish
