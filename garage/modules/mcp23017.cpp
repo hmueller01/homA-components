@@ -29,6 +29,7 @@ extern "C" {
 #include <ets_sys.h>
 #include <osapi.h>
 
+#include "wiringESP.h"
 #include "mcp23017.h"
 #include "i2c_master.h"
 }
