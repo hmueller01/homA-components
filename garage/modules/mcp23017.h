@@ -34,7 +34,7 @@
 
 #define MCP23017_MIN_PIN 0
 #define MCP23017_MAX_PIN 15
-#define MCP23017_HW_ADDR 0x00
+#define MCP23017_HW_ADDR 0x00 // HW address coded by pins A0, A1, A2
 #define MCP23017_OP_W (0x40 | MCP23017_HW_ADDR << 1)
 #define MCP23017_OP_R (MCP23017_OP_W | 0x01)
 
