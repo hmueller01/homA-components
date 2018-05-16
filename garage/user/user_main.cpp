@@ -230,9 +230,10 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/type", "text", 4, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/unit", " %%", 2, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
+	// we can't post two signals to the same task at the same time, so delay this a bit
 	os_timer_disarm(&cistern_timer);
 	os_timer_setfn(&cistern_timer, (os_timer_func_t *)CisternTimer_Cb, NULL);
-	os_timer_arm(&cistern_timer, 95, FALSE); // we can not post two signals to the same task at the same time, so delay this a bit
+	os_timer_arm(&cistern_timer, 95, FALSE);
 
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/order", "1", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/order", "2", 1, 1, TRUE);
