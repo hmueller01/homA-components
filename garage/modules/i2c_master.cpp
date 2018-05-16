@@ -72,33 +72,6 @@ i2c_master::setClock(uint8_t clock)
 }
 
 /**
- * @brief  Initilize I2C bus.
- * @author Holger Mueller
- * @date   2018-05-15
- */
- /* XXX
-void ICACHE_FLASH_ATTR
-i2c_master::init(void)
-{
-	uint8_t i;
-
-	this->clock(1, 0);
-
-	// when SCL = 0, toggle SDA to clear up
-	this->clock(0, 0);
-	this->clock(1, 0);
-	// set data_cnt to max value
-	for (i = 0; i < 28; i++) {
-		this->clock(1, 0);
-		this->clock(1, 1);
-	}
-
-	// reset all
-	this->stop();
-	return;
-}*/
-
-/**
  * @brief  Send I2C start condition.
  * @author Holger Mueller
  * @date   2018-05-15
@@ -139,7 +112,6 @@ i2c_master::sendAck(uint8_t level)
 	this->clock(this->m_last_sda, 0);
 	this->clock(level, 0);
 	this->clock(level, 1);
-	//delayMicroseconds(3);	// XXX why this extra delay?
 	this->clock(level, 0);
 	this->clock(1, 0);
 }
@@ -255,7 +227,6 @@ m_pin_sda(pin_sda), m_pin_scl(pin_scl)
 	pinMode(this->m_pin_sda, OPENDRAIN);
 	pinMode(this->m_pin_scl, OPENDRAIN);
 	this->clock(HIGH, HIGH);
-	// XXX this->init();
 }
 
 ICACHE_FLASH_ATTR
