@@ -193,6 +193,30 @@ CisternTimer_Cb(void *arg)
 
 /**
  ******************************************************************
+ * @brief  Calculate percentage of bit level value.
+ * @author Holger Mueller
+ * @date   2018-05-18
+ *
+ * @param  cistern_lvl - Bit value of cistern level (0x1=10%, 0x3=20%, ...).
+ * @return Percentage value (0 .. 100)
+ ******************************************************************
+ */
+//
+LOCAL uint8_t ICACHE_FLASH_ATTR
+CisternGetPercent(uint16_t cistern_lvl)
+{
+	uint8_t cistern_percent = 0;
+
+	while (cistern_lvl & 0x01) {
+		cistern_percent++;
+		cistern_lvl >>= 1;
+	}
+
+	return cistern_percent * 10;
+}
+
+/**
+ ******************************************************************
  * @brief  MQTT callback broker connected.
  * @author Holger Mueller
  * @date   2018-03-15
@@ -521,7 +545,7 @@ DoorPinChange_Cb(void)
  ******************************************************************
  * @brief  Main task for publishing data.
  * @author Holger Mueller
- * @date   2018-03-15, 2018-05-16
+ * @date   2018-03-15, 2018-05-18
  *
  * @param  *event_p - message queue pointer set by system_os_post().
  ******************************************************************
@@ -559,20 +583,13 @@ Main_Task(os_event_t *event_p)
 		break;
 	case SIG_CISTERN_LVL:
 		INFO("%s: Got signal 'SIG_CISTERN_LVL'." CRLF, __FUNCTION__);
-		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, ON);
-		//delay(100); // wait 100 ms
+		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, LOW); // start measurement
+		delay(50); // wait 50 ms to settle measurement
 		cistern_lvl = m_mcp23017.digitalRead16() & 0x03FF;
-		INFO("MCP23017 cistern_lvl=%x" CRLF, cistern_lvl);
-		//INFO("%s: digitalWrite(CISTERN_LVL_BTN, OFF)" CRLF, __FUNCTION__);
-		//m_mcp23017.digitalWrite(CISTERN_LVL_BTN, OFF);
-		cistern_percent = 0;
-		while (cistern_lvl & 0x01) {
-			cistern_percent++;
-			cistern_lvl = cistern_lvl >> 1;
-		}
-		cistern_percent = cistern_percent * 10;
+		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // stop measurement (BTN off)
+		cistern_percent = CisternGetPercent(cistern_lvl);
 		itoa(cistern_str, cistern_percent);
-		INFO("MCP23017 cistern_percent=%s" CRLF, cistern_str);
+		INFO("%s: MCP23017 cistern_lvl=0x%X, cistern_percent=%s" CRLF, __FUNCTION__, cistern_lvl, cistern_str);
 		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level",
 			cistern_str, os_strlen(cistern_str), 1, TRUE);
 
@@ -643,6 +660,7 @@ user_init(void)
 	INFO("MCP23017 setup ..." CRLF);
 	m_mcp23017 = mcp23017(PIN_SDA, PIN_SCL, 0xFF, 0xFF, 0xFF, 0x03, 0xFF, 0x03);
 	m_mcp23017.pinMode(CISTERN_LVL_BTN, MCP23017_OUTPUT);
+	m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // HIGH is BTN not pressed
 	m_mcp23017.dumpRegs();
 
 	INFO("System started." CRLF CRLF);
