@@ -341,7 +341,7 @@ mcp23017::digitalWrite16(uint16_t value)
 	// save in global register copy, as we have written it successfully
 	m_regs.reg.gpioa = (uint8_t) value;
 
-	m_i2c.sendByte((uint8_t) value >> 8);
+	m_i2c.sendByte((uint8_t) (value >> 8));
 	if (m_i2c.readAck()) {
 		ERROR("%s: gpiob not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -431,7 +431,7 @@ mcp23017::dumpRegs(void)
 			m_i2c.sendAck();
 		}
 		value = m_i2c.readByte();
-		ERROR("MCP23017 register %2x: %02x\n", i, value);
+		ERROR("MCP23017 register 0x%02X=0x%02X\n", i, value);
 	}
 	m_i2c.stop();
 
