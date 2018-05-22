@@ -81,7 +81,7 @@ enum mcp23017_addr {
  * @return true: successful, false: error
  */
 bool ICACHE_FLASH_ATTR
-mcp23017::pinMode(uint8_t pin, uint8_t mode)
+Mcp23017::pinMode(uint8_t pin, uint8_t mode)
 {
 	uint8_t gppua, gppub;
 	uint8_t iodira, iodirb;
@@ -191,7 +191,7 @@ mcp23017::pinMode(uint8_t pin, uint8_t mode)
  * @return true: successful, false: error
  */
 bool ICACHE_FLASH_ATTR
-mcp23017::pullUpDnControl(uint8_t pin, uint8_t pud)
+Mcp23017::pullUpDnControl(uint8_t pin, uint8_t pud)
 {
 	uint8_t gppua, gppub;
 	uint16_t pin_bit = PIN_TO_BIT(pin);
@@ -255,7 +255,7 @@ mcp23017::pullUpDnControl(uint8_t pin, uint8_t pud)
  * @return Value of the I/O ports.
  */
 uint16_t ICACHE_FLASH_ATTR
-mcp23017::digitalRead16(void)
+Mcp23017::digitalRead16(void)
 {
 	// write GPIOA address to MCP23017
 	m_i2c.start();
@@ -298,7 +298,7 @@ mcp23017::digitalRead16(void)
  * @return Status of pin (LOW or HIGH).
  */
 uint8_t ICACHE_FLASH_ATTR
-mcp23017::digitalRead(uint8_t pin)
+Mcp23017::digitalRead(uint8_t pin)
 {
 	if (!CHECK_PIN(pin)) {
 		return false;
@@ -316,7 +316,7 @@ mcp23017::digitalRead(uint8_t pin)
  * @return true: successful, false: error
  */
 bool ICACHE_FLASH_ATTR
-mcp23017::digitalWrite16(uint16_t value)
+Mcp23017::digitalWrite16(uint16_t value)
 {
 	// write GPIOA address to MCP23017
 	m_i2c.start();
@@ -364,7 +364,7 @@ mcp23017::digitalWrite16(uint16_t value)
  * @return true: successful, false: error
  */
 bool ICACHE_FLASH_ATTR
-mcp23017::digitalWrite(uint8_t pin, uint8_t value)
+Mcp23017::digitalWrite(uint8_t pin, uint8_t value)
 {
 	uint8_t gpioa, gpiob;
 	uint16_t pin_bit = PIN_TO_BIT(pin);
@@ -398,7 +398,7 @@ mcp23017::digitalWrite(uint8_t pin, uint8_t value)
  * @return true: successful, false: error
  */
 bool ICACHE_FLASH_ATTR
-mcp23017::dumpRegs(void)
+Mcp23017::dumpRegs(void)
 {
 	uint8_t i;
 	uint8_t value;
@@ -439,21 +439,23 @@ mcp23017::dumpRegs(void)
 }
 
 /**
- * @brief  Init class
+ * @brief  Initiate the mcp23017 library.
+ *         This shall be called before any other function.
+ *         Configures I2C, writes default config values to MCP23017.
  * @author Holger Mueller
- * @date   2018-05-05, 2018-05-15
+ * @date   2018-05-05, 2018-05-15, 2018-05-22
  *
  * @param  pin_sda - wiringESP SDA pin.
  * @param  pin_scl - wiringESP SCL pin.
- * @param  iodira - direction configuration port A (default 0xFF).
- * @param  iodirb - direction configuration port B (default 0xFF).
- * @param  gppua - pull-up resistor enable port A (default 0x00).
- * @param  gppub - pull-up resistor enable port B (default 0x00).
- * @param  ipola - input polarity configuration port A (default 0x00).
- * @param  ipolb - input polarity configuration port B (default 0x00).
+ * @param  iodira - direction configuration port A (optional, default 0xFF).
+ * @param  iodirb - direction configuration port B (optional, default 0xFF).
+ * @param  gppua - pull-up resistor enable port A (optional, default 0x00).
+ * @param  gppub - pull-up resistor enable port B (optional, default 0x00).
+ * @param  ipola - input polarity configuration port A (optional, default 0x00).
+ * @param  ipolb - input polarity configuration port B (optional, default 0x00).
  */
-ICACHE_FLASH_ATTR
-mcp23017::mcp23017(uint8_t pin_sda, uint8_t pin_scl,
+bool ICACHE_FLASH_ATTR
+Mcp23017::begin(uint8_t pin_sda, uint8_t pin_scl,
 		uint8_t iodira, uint8_t iodirb,
 		uint8_t gppua, uint8_t gppub,
 		uint8_t ipola, uint8_t ipolb)
@@ -472,7 +474,7 @@ mcp23017::mcp23017(uint8_t pin_sda, uint8_t pin_scl,
 	m_regs.reg.ipolb = ipolb;
 
 	// init I2C GPIO class and read data
-	m_i2c = i2c_master(pin_sda, pin_scl);
+	m_i2c.begin(pin_sda, pin_scl);
 
 	// write first address (IODIRA) to MCP23017
 	m_i2c.start();
@@ -480,13 +482,13 @@ mcp23017::mcp23017(uint8_t pin_sda, uint8_t pin_scl,
 	if (m_i2c.readAck()) {
 		ERROR("%s: op write not ack\n", __FUNCTION__);
 		m_i2c.stop();
-		return;
+		return false;
 	}
 	m_i2c.sendByte(IODIRA);
 	if (m_i2c.readAck()) {
 		ERROR("%s: addr not ack\n", __FUNCTION__);
 		m_i2c.stop();
-		return;
+		return false;
 	}
 	// write init values to MCP23017
 	for (i = 0; i < reg_size; i++) {
@@ -495,12 +497,12 @@ mcp23017::mcp23017(uint8_t pin_sda, uint8_t pin_scl,
 		if (m_i2c.readAck()) {
 			ERROR("%s: write byte %d not ack\n", __FUNCTION__, i);
 			m_i2c.stop();
-			return;
+			return false;
 		}
 	}
 	m_i2c.stop();
 
-	return;
+	return true;
 }
 
 /**
@@ -509,8 +511,7 @@ mcp23017::mcp23017(uint8_t pin_sda, uint8_t pin_scl,
  * @date   2018-05-14
  */
 ICACHE_FLASH_ATTR
-mcp23017::mcp23017()
+Mcp23017::Mcp23017()
 {
-	ERROR("mcp23017() constructor w/o parameter called\n");
 }
 

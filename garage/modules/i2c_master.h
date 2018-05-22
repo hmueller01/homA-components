@@ -24,12 +24,11 @@
 
 #include <c_types.h>
 
-class i2c_master {
+class I2c_master {
   public:
-	i2c_master(); // constructor
-	i2c_master(uint8_t pin_sda, uint8_t pin_scl);
+	I2c_master(); // constructor
 
-	void setClock(uint8_t clock);
+	void begin(uint8_t pin_sda, uint8_t pin_scl, uint8_t clock = 5);
 	void start(void);
 	void stop(void);
 	void sendAck(uint8_t level);
@@ -40,8 +39,8 @@ class i2c_master {
 	void sendByte(uint8_t data);
 
   private:
-	uint8_t m_pin_sda;
-	uint8_t m_pin_scl;
+	uint8_t m_pin_sda = 0;
+	uint8_t m_pin_scl = 0;
 	uint8_t m_last_sda = 0;
 	uint8_t m_last_scl = 0;
 	uint8_t m_clock = 5; // 5µs half cycle = 100kHz clock

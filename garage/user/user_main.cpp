@@ -43,7 +43,7 @@ extern "C" {
 }
 
 // global variables
-LOCAL mcp23017 m_mcp23017;
+LOCAL Mcp23017 m_mcp23017;
 LOCAL MQTT_Client mqttClient;
 LOCAL bool mqtt_connected = FALSE;
 LOCAL bool send_start_time = FALSE;
@@ -658,7 +658,7 @@ user_init(void)
 
 	// setup MCP23017 GPIO expander
 	INFO("MCP23017 setup ..." CRLF);
-	m_mcp23017 = mcp23017(PIN_SDA, PIN_SCL, 0xFF, 0xFF, 0xFF, 0x03, 0xFF, 0x03);
+	m_mcp23017.begin(PIN_SDA, PIN_SCL, 0xFF, 0xFF, 0xFF, 0x03, 0xFF, 0x03);
 	m_mcp23017.pinMode(CISTERN_LVL_BTN, MCP23017_OUTPUT);
 	m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // HIGH is BTN not pressed
 	m_mcp23017.dumpRegs();

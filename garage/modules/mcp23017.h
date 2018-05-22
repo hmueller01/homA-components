@@ -56,10 +56,11 @@
 //#define MCP23017_PUD_DOWN 1 // not possible with MCP23017
 #define MCP23017_PUD_UP 2
 
-class mcp23017 {
+class Mcp23017 {
   public:
-	mcp23017(); // constructor
-	mcp23017(uint8_t pin_sda, uint8_t pin_scl, uint8_t iodira = 0xFF, uint8_t iodirb = 0xFF, uint8_t gppua = 0, uint8_t gppub = 0, uint8_t ipola = 0, uint8_t ipolb = 0);
+	Mcp23017(); // constructor
+
+	bool begin(uint8_t pin_sda, uint8_t pin_scl, uint8_t iodira = 0xFF, uint8_t iodirb = 0xFF, uint8_t gppua = 0, uint8_t gppub = 0, uint8_t ipola = 0, uint8_t ipolb = 0);
 
 	// Core wiringMCP23017 functions
 	bool pinMode(uint8_t pin, uint8_t mode);
@@ -71,7 +72,7 @@ class mcp23017 {
 	bool dumpRegs(void);
 
   private:
-	i2c_master m_i2c; // I2C interface class
+	I2c_master m_i2c; // I2C interface class
 
 	// internal copy of the MCP23017 control register
 	// align bytes of union to 1 byte boundary (instead of compiler default)

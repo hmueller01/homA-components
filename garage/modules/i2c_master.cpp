@@ -45,7 +45,7 @@ extern "C" {
  * @param  scl - SCL level (LOW/HIGH).
  */
 void ICACHE_FLASH_ATTR
-i2c_master::clock(uint8_t sda, uint8_t scl)
+I2c_master::clock(uint8_t sda, uint8_t scl)
 {
 	this->m_last_sda = sda;
 	this->m_last_scl = scl;
@@ -56,28 +56,12 @@ i2c_master::clock(uint8_t sda, uint8_t scl)
 }
 
 /**
- * @brief  Set the I2C clock speed.
- * @author Holger Mueller
- * @date   2018-05-15
- *
- * @param  clock - Clock time of half cycle [µs].
- *                 5 = 100kHz (default)
- *                 1 = 500kHz
- *                 2 = 250kHz
- */
-void ICACHE_FLASH_ATTR
-i2c_master::setClock(uint8_t clock)
-{
-	this->m_clock = clock;
-}
-
-/**
  * @brief  Send I2C start condition.
  * @author Holger Mueller
  * @date   2018-05-15
  */
 void ICACHE_FLASH_ATTR
-i2c_master::start(void)
+I2c_master::start(void)
 {
 	// SDA 1 -> 0 while SCL = 1
 	this->clock(1, this->m_last_scl);
@@ -91,7 +75,7 @@ i2c_master::start(void)
  * @date   2018-05-15
  */
 void ICACHE_FLASH_ATTR
-i2c_master::stop(void)
+I2c_master::stop(void)
 {
 	// SDA 0 -> 1 while SCL = 1
 	this->clock(0, this->m_last_scl);
@@ -107,7 +91,7 @@ i2c_master::stop(void)
  * @param  level - ACK level (LOW = ACK, HIGH = NACK).
  */
 void ICACHE_FLASH_ATTR
-i2c_master::sendAck(uint8_t level)
+I2c_master::sendAck(uint8_t level)
 {
 	this->clock(this->m_last_sda, 0);
 	this->clock(level, 0);
@@ -122,7 +106,7 @@ i2c_master::sendAck(uint8_t level)
  * @date   2018-05-15
  */
 void ICACHE_FLASH_ATTR
-i2c_master::sendAck(void)
+I2c_master::sendAck(void)
 {
 	this->sendAck(LOW);
 }
@@ -133,7 +117,7 @@ i2c_master::sendAck(void)
  * @date   2018-05-15
  */
 void ICACHE_FLASH_ATTR
-i2c_master::sendNack(void)
+I2c_master::sendNack(void)
 {
 	this->sendAck(HIGH);
 }
@@ -146,7 +130,7 @@ i2c_master::sendNack(void)
  * @return ACK level (LOW = ACK, HIGH = NACK).
  */
 uint8_t ICACHE_FLASH_ATTR
-i2c_master::readAck(void)
+I2c_master::readAck(void)
 {
 	uint8_t ret;
 
@@ -167,7 +151,7 @@ i2c_master::readAck(void)
  * @return Read value (byte).
  */
 uint8_t ICACHE_FLASH_ATTR
-i2c_master::readByte(void)
+I2c_master::readByte(void)
 {
 	uint8_t ret = 0;
 	uint8_t sda;
@@ -193,7 +177,7 @@ i2c_master::readByte(void)
  * @param  data - Value (byte) to send.
  */
 void ICACHE_FLASH_ATTR
-i2c_master::sendByte(uint8_t data)
+I2c_master::sendByte(uint8_t data)
 {
 	uint8_t sda;
 	sint8_t i;
@@ -208,31 +192,33 @@ i2c_master::sendByte(uint8_t data)
 }
 
 /**
- * @brief  i2c_master class constructor.
- *         Config SDA and SCL GPIO pin to open-drain output mode.
- *         Send init sequence.
+ * @brief  Initiate the I2c_master library.
+ *         This shall be called before any other function.
+ *         Configs SDA and SCL GPIO pin to open-drain output mode,
+ *         clock speed and sends init sequence.
  * @author Holger Mueller
- * @date   2018-05-15
+ * @date   2018-05-22
  *
  * @param  pin_sda - wiringESP SDA pin.
  * @param  pin_scl - wiringESP SCL pin.
+ * @param  clock - Clock time of half cycle [µs] (optional).
+ *                 5 = 100kHz (default)
+ *                 1 = 500kHz
+ *                 2 = 250kHz
  */
-ICACHE_FLASH_ATTR
-i2c_master::i2c_master(uint8_t pin_sda, uint8_t pin_scl) :
-m_pin_sda(pin_sda), m_pin_scl(pin_scl)
+void ICACHE_FLASH_ATTR
+I2c_master::begin(uint8_t pin_sda, uint8_t pin_scl, uint8_t clock)
 {
-	ERROR("i2c_master(%d, %d) constructor called\n",
-		this->m_pin_sda, this->m_pin_scl);
-
+	this->m_pin_sda = pin_sda;
+	this->m_pin_scl = pin_scl;
+	this->m_clock = clock;
 	pinMode(this->m_pin_sda, OPENDRAIN);
 	pinMode(this->m_pin_scl, OPENDRAIN);
 	this->clock(HIGH, HIGH);
 }
 
 ICACHE_FLASH_ATTR
-i2c_master::i2c_master() :
-m_pin_sda(0), m_pin_scl(0)
+I2c_master::I2c_master()
 {
-	ERROR("i2c_master() constructor w/o parameter called\n");
 }
 
