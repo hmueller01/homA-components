@@ -6,7 +6,7 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 13
+#define APP_VERSION 14
 
 // define DEBUG_ON to show debug output
 #define DEBUG_ON
@@ -36,7 +36,7 @@
 #define CISTERN_LVL_BTN 15
 
 // configuration of cistern level read frequency (10 min.)
-#define CISTERN_TIMER (10 * 60 * 1000)
+#define CISTERN_LVL_TIMER (10 * 60 * 1000)
 
 #define USE_OPTIMIZE_PRINTF
 
