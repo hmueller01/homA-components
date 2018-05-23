@@ -48,9 +48,12 @@ LOCAL MQTT_Client mqttClient;
 LOCAL bool mqtt_connected = FALSE;
 LOCAL bool send_start_time = FALSE;
 LOCAL uint16_t server_version;
+LOCAL uint16_t m_cistern_timeout_time = 0; // [min]
+LOCAL uint16_t m_cistern_timeout_cnt = 0; // [min]
 LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
-LOCAL os_timer_t cistern_timer; // timer to read cistern level
+LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
+LOCAL os_timer_t m_cistern_timeout_timer; // timer to timeout cistern pump
 #define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
@@ -170,7 +173,39 @@ CheckSntpStamp_Cb(void *arg)
 
 /**
  ******************************************************************
- * @brief  Cistern loop timer callback.
+ * @brief  Cistern pump timeout timer callback.
+ * @author Holger Mueller
+ * @date   2018-05-22
+ *
+ * @param  arg - NULL, not used.
+ ******************************************************************
+ */
+LOCAL void ICACHE_FLASH_ATTR
+CisternTimeoutTimer_Cb(void *arg)
+{
+	bool ret;
+
+	if (m_cistern_timeout_cnt != 0) {
+		m_cistern_timeout_cnt--;
+		if (m_cistern_timeout_cnt == 0) {
+			os_timer_disarm(&m_cistern_timeout_timer);
+			// switch pump off in main task
+			ret = system_os_post(MAIN_TASK_PRIO, SIG_CISTERN, OFF);
+			if (!ret) {
+				DEBUG("%s: system_os_post() failed, retry in 98 ms" CRLF, __FUNCTION__);
+				m_cistern_timeout_cnt = 1;
+				os_timer_arm(&m_cistern_timeout_timer, 98, FALSE);
+			}
+		}
+	} else {
+		DEBUG("%s: Timer with m_cistern_timeout_cnt == 0 elapsed." CRLF, __FUNCTION__);
+		os_timer_disarm(&m_cistern_timeout_timer);
+	}
+}
+
+/**
+ ******************************************************************
+ * @brief  Cistern level loop timer callback.
  * @author Holger Mueller
  * @date   2018-05-11, 2018-05-16
  *
@@ -178,16 +213,16 @@ CheckSntpStamp_Cb(void *arg)
  ******************************************************************
  */
 LOCAL void ICACHE_FLASH_ATTR
-CisternTimer_Cb(void *arg)
+CisternLvlTimer_Cb(void *arg)
 {
 	bool ret;
 
-	os_timer_disarm(&cistern_timer);
+	os_timer_disarm(&cistern_lvl_timer);
 	// read the level in main task
 	ret = system_os_post(MAIN_TASK_PRIO, SIG_CISTERN_LVL, 0);
 	if (!ret) {
 		DEBUG("%s: system_os_post() failed, retry in 99 ms" CRLF, __FUNCTION__);
-		os_timer_arm(&cistern_timer, 99, FALSE);
+		os_timer_arm(&cistern_lvl_timer, 99, FALSE);
 	}
 }
 
@@ -255,9 +290,9 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/unit", " %%", 2, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
 	// we can't post two signals to the same task at the same time, so delay this a bit
-	os_timer_disarm(&cistern_timer);
-	os_timer_setfn(&cistern_timer, (os_timer_func_t *)CisternTimer_Cb, NULL);
-	os_timer_arm(&cistern_timer, 95, FALSE);
+	os_timer_disarm(&cistern_lvl_timer);
+	os_timer_setfn(&cistern_lvl_timer, (os_timer_func_t *)CisternLvlTimer_Cb, NULL);
+	os_timer_arm(&cistern_lvl_timer, 95, FALSE);
 
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/order", "1", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/order", "2", 1, 1, TRUE);
@@ -322,7 +357,7 @@ MqttPublished_Cb(uint32_t * args)
  ******************************************************************
  * @brief  MQTT callback message/topic received.
  * @author Holger Mueller
- * @date   2017-06-08, 2018-03-15
+ * @date   2017-06-08, 2018-03-15, 2018-05-22
  *
  * @param  args - MQTT_Client structure pointer.
  ******************************************************************
@@ -359,6 +394,9 @@ MqttData_Cb(uint32_t *args, const char *topic_raw, uint32_t topic_len, const cha
 			// do the main work in a Task, not here in the callback
 			system_os_post(MAIN_TASK_PRIO, SIG_UPGRADE, 0);
 		}
+	} else if (strcmp(topic, "/sys/" HOMA_SYSTEM_ID "/cistern_time") == 0) {
+		m_cistern_timeout_time = atoi(data);
+		INFO("Received cistern_time %d" CRLF, m_cistern_timeout_time);
 	} else if (os_strncmp(topic, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on",
 			os_strlen("/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on")) == 0) {
 		// the cistern pump should be switched on or off
@@ -545,7 +583,7 @@ DoorPinChange_Cb(void)
  ******************************************************************
  * @brief  Main task for publishing data.
  * @author Holger Mueller
- * @date   2018-03-15, 2018-05-18
+ * @date   2018-03-15, 2018-05-18, 2018-05-22
  *
  * @param  *event_p - message queue pointer set by system_os_post().
  ******************************************************************
@@ -563,6 +601,16 @@ Main_Task(os_event_t *event_p)
 		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern",
 				event_p->par == ON ? "1" : "0", 1, 1, TRUE);
 		digitalWrite(PIN_CISTERN, event_p->par);
+		// set timeout of cistern pump (auto switch off)
+		if (event_p->par == ON) {
+			os_timer_disarm(&m_cistern_timeout_timer);
+			m_cistern_timeout_cnt = m_cistern_timeout_time;
+			os_timer_setfn(&m_cistern_timeout_timer, (os_timer_func_t *)CisternTimeoutTimer_Cb, NULL);
+			os_timer_arm(&m_cistern_timeout_timer, 60 * 1000, TRUE); // 1 min timer
+		} else {
+			os_timer_disarm(&m_cistern_timeout_timer);
+			m_cistern_timeout_cnt = 0;
+		}
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
@@ -593,9 +641,9 @@ Main_Task(os_event_t *event_p)
 		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level",
 			cistern_str, os_strlen(cistern_str), 1, TRUE);
 
-		os_timer_disarm(&cistern_timer);
-		os_timer_setfn(&cistern_timer, (os_timer_func_t *)CisternTimer_Cb, NULL);
-		os_timer_arm(&cistern_timer, CISTERN_TIMER, FALSE);
+		os_timer_disarm(&cistern_lvl_timer);
+		os_timer_setfn(&cistern_lvl_timer, (os_timer_func_t *)CisternLvlTimer_Cb, NULL);
+		os_timer_arm(&cistern_lvl_timer, CISTERN_LVL_TIMER, FALSE);
 
 		break;
 	default:
