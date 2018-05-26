@@ -192,7 +192,7 @@ CisternTimeoutTimer_Cb(void *arg)
 			// switch pump off in main task
 			ret = system_os_post(MAIN_TASK_PRIO, SIG_CISTERN, OFF);
 			if (!ret) {
-				DEBUG("%s: system_os_post() failed, retry in 98 ms" CRLF, __FUNCTION__);
+				ERROR("%s: system_os_post() failed, retry in 98 ms" CRLF, __FUNCTION__);
 				m_cistern_timeout_cnt = 1;
 				os_timer_arm(&m_cistern_timeout_timer, 98, FALSE);
 			}
@@ -207,7 +207,7 @@ CisternTimeoutTimer_Cb(void *arg)
  ******************************************************************
  * @brief  Cistern level loop timer callback.
  * @author Holger Mueller
- * @date   2018-05-11, 2018-05-16
+ * @date   2018-05-11, 2018-05-26
  *
  * @param  arg - NULL, not used.
  ******************************************************************
@@ -217,12 +217,10 @@ CisternLvlTimer_Cb(void *arg)
 {
 	bool ret;
 
-	os_timer_disarm(&cistern_lvl_timer);
 	// read the level in main task
 	ret = system_os_post(MAIN_TASK_PRIO, SIG_CISTERN_LVL, 0);
 	if (!ret) {
-		DEBUG("%s: system_os_post() failed, retry in 99 ms" CRLF, __FUNCTION__);
-		os_timer_arm(&cistern_lvl_timer, 99, FALSE);
+		ERROR("%s: system_os_post() failed." CRLF, __FUNCTION__);
 	}
 }
 
@@ -254,7 +252,7 @@ CisternGetPercent(uint16_t cistern_lvl)
  ******************************************************************
  * @brief  MQTT callback broker connected.
  * @author Holger Mueller
- * @date   2018-03-15
+ * @date   2018-03-15, 2018-05-26
  * Subscribes to /sys topics, publishes HomA /devices/ structure.
  *
  * @param  args - MQTT_Client structure pointer.
@@ -289,10 +287,6 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/type", "text", 4, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/unit", " %%", 2, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
-	// we can't post two signals to the same task at the same time, so delay this a bit
-	os_timer_disarm(&cistern_lvl_timer);
-	os_timer_setfn(&cistern_lvl_timer, (os_timer_func_t *)CisternLvlTimer_Cb, NULL);
-	os_timer_arm(&cistern_lvl_timer, 95, FALSE);
 
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/order", "1", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/order", "2", 1, 1, TRUE);
@@ -612,6 +606,18 @@ Main_Task(os_event_t *event_p)
 			m_cistern_timeout_cnt = 0;
 		}
 		break;
+	case SIG_CISTERN_LVL:
+		INFO("%s: Got signal 'SIG_CISTERN_LVL'." CRLF, __FUNCTION__);
+		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, LOW); // start measurement
+		delay(50); // wait 50 ms to settle measurement
+		cistern_lvl = m_mcp23017.digitalRead16() & 0x03FF;
+		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // stop measurement (BTN off)
+		cistern_percent = CisternGetPercent(cistern_lvl);
+		itoa(cistern_str, cistern_percent);
+		INFO("%s: MCP23017 cistern_lvl=0x%X, cistern_percent=%s" CRLF, __FUNCTION__, cistern_lvl, cistern_str);
+		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level",
+			cistern_str, os_strlen(cistern_str), 1, TRUE);
+		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
 		if (0 == event_p->par) {
@@ -628,23 +634,6 @@ Main_Task(os_event_t *event_p)
 			// No upgrade will be done
 		}
 		server_version = 0; // reset server version
-		break;
-	case SIG_CISTERN_LVL:
-		INFO("%s: Got signal 'SIG_CISTERN_LVL'." CRLF, __FUNCTION__);
-		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, LOW); // start measurement
-		delay(50); // wait 50 ms to settle measurement
-		cistern_lvl = m_mcp23017.digitalRead16() & 0x03FF;
-		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // stop measurement (BTN off)
-		cistern_percent = CisternGetPercent(cistern_lvl);
-		itoa(cistern_str, cistern_percent);
-		INFO("%s: MCP23017 cistern_lvl=0x%X, cistern_percent=%s" CRLF, __FUNCTION__, cistern_lvl, cistern_str);
-		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level",
-			cistern_str, os_strlen(cistern_str), 1, TRUE);
-
-		os_timer_disarm(&cistern_lvl_timer);
-		os_timer_setfn(&cistern_lvl_timer, (os_timer_func_t *)CisternLvlTimer_Cb, NULL);
-		os_timer_arm(&cistern_lvl_timer, CISTERN_LVL_TIMER, FALSE);
-
 		break;
 	default:
 		ERROR("%s: Unknown signal %d." CRLF, __FUNCTION__, event_p->sig);
@@ -692,6 +681,11 @@ user_init(void)
 	attachInterrupt(PIN_DOOR, DoorPinChange_Cb, CHANGE);
 	pinMode(PIN_CISTERN, OUTPUT);
 	digitalWrite(PIN_CISTERN, OFF);
+
+	// setup cyclic sending of cistern level
+	os_timer_disarm(&cistern_lvl_timer);
+	os_timer_setfn(&cistern_lvl_timer, (os_timer_func_t *)CisternLvlTimer_Cb, NULL);
+	os_timer_arm(&cistern_lvl_timer, CISTERN_LVL_TIMER, TRUE);
 
 	// setup MQTT
 	//MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
