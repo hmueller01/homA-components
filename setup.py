@@ -7,6 +7,7 @@
 # 2017/03/12 added gas-meter
 
 import paho.mqtt.client as mqtt
+import ssl
 import mqtt_config		# defines host, port, user, pwd, ca_certs
 
 # config here ...
@@ -48,7 +49,7 @@ def get_topic(device, t1 = None, t2 = None, t3 = None):
 
 def homa_init(mqttc):
 	"Publish HomA setup messages to MQTT broker."
-	print("Publishing HomA setup data ...")
+	print("Publishing HomA setup data to "+mqtt_config.host+" ...")
 	for mqtt_dict in mqtt_devices_arr:
 		mqttc.publish(get_topic(mqtt_dict['device'], "meta/room"), mqtt_dict['room'], retain=True)
 		mqttc.publish(get_topic(mqtt_dict['device'], "meta/name"), mqtt_dict['name'], retain=True)
@@ -81,6 +82,8 @@ def main():
 	mqttc.on_message = on_message
 	mqttc.on_publish = on_publish
 	if mqtt_config.ca_certs != "":
+		# avoid "CertificateError: hostname" error by monkey patching ssl
+		#ssl.match_hostname = lambda cert, hostname: True
 		#mqttc.tls_insecure_set(True) # Do not use this "True" in production!
 		mqttc.tls_set(mqtt_config.ca_certs, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1, ciphers=None)
 	mqttc.username_pw_set(mqtt_config.user, password=mqtt_config.pwd)
@@ -96,3 +99,5 @@ def main():
 
 if __name__ == "__main__":
 	main()
+	execfile("min_max_saver/setup.py")
+	execfile("rcplugs-esp/setup.py")

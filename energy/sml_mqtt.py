@@ -8,6 +8,7 @@
 import sys
 import os.path
 import paho.mqtt.client as mqtt
+import ssl
 import mqtt_config		# defines secret host, port, user, pwd, ca_certs
 
 # config here ...

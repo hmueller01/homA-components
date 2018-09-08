@@ -18,6 +18,7 @@
 import sys
 import getopt
 import paho.mqtt.client as mqtt
+import ssl
 import mqtt_config		# defines host, port, user, pwd, ca_certs
 
 # config here ...
@@ -48,7 +49,7 @@ def get_topic(systemUnitCode, t1 = None, t2 = None, t3 = None):
 
 def homa_init(mqttc):
 	"Publish HomA setup messages to MQTT broker."
-	print("Publishing HomA setup data (systemId %s) ..." % systemId)
+	print("Publishing HomA setup data to %s (systemId %s) ..." % (mqtt_config.host, systemId))
 	mqttc.publish("/devices/%s/meta/room" % systemId, room, retain=True)
 	mqttc.publish("/devices/%s/meta/name" % systemId, ".Info", retain=True)
 	# setup controls

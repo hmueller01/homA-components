@@ -10,10 +10,11 @@
 
 import sys
 import paho.mqtt.client as mqtt
+import ssl
 import mqtt_config		# defines host, port, user, pwd, ca_certs
 
 # config here ...
-debug = True
+debug = False
 systemId = "123456-min-max-saver"
 # config min/max saver here
 mqtt_arr = [
@@ -25,7 +26,7 @@ mqtt_arr = [
 
 def homa_init(mqttc):
 	"Publish HomA setup messages for min/max saver."
-	print("Publishing HomA setup data (systemId %s) ..." % systemId)
+	print("Publishing HomA setup data to %s (systemId %s) ..." % (mqtt_config.host, systemId))
 	# setup controls
 	for mqtt_dict in mqtt_arr:
 		mqttc.publish("/sys/%s/%s/%s/%s" % (systemId, mqtt_dict['saver'], mqtt_dict['system'], mqtt_dict['control']), mqtt_dict['time'], retain=True)
