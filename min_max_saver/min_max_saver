@@ -21,6 +21,7 @@ import sys
 import time
 import getopt
 import paho.mqtt.client as mqtt
+import ssl
 import mqtt_config		# defines host, port, user, pwd, ca_certs
 import ssl
 import setup

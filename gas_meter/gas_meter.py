@@ -9,6 +9,7 @@ import os.path
 import time
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
+import ssl
 import mqtt_config		# defines secret host, port, user, pwd, ca_certs
 
 # config here ...
