@@ -34,7 +34,7 @@
 #include "osapi.h"
 #include "user_interface.h"
 
-#include "user_common.h"
+#include "common.h"
 #include "mqtt.h"
 #include "config.h"
 

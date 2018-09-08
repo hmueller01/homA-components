@@ -1,10 +1,9 @@
 /**
  * @file
- * @brief Common user functions and definitions
- * $Id: user_common.h 16 2015-10-29 21:49:45Z hmueller $
+ * @brief Common functions and definitions
  */
-#ifndef __USER_COMMON_H__
-#define __USER_COMMON_H__
+#ifndef __COMMON_H__
+#define __COMMON_H__
 
 #include <c_types.h>
 #include <osapi.h>
@@ -32,4 +31,4 @@
 char *ftoa(char *s, float f);
 char *itoa(char *s, uint16_t i);
 
-#endif /* __USER_COMMON_H__ */
+#endif /* __COMMON_H__ */

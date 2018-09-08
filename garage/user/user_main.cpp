@@ -18,6 +18,9 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 - All interrupt handlers must not have the ICACHE_FLASH_ATTR decorator and any code which executes very often should not have the decorator.
 */
 
+// C++ wrapper
+extern "C" {
+// put C includes inside here to avoid undefined references by linker.
 #include <ets_sys.h>
 #include <osapi.h>
 #include <gpio.h>
@@ -26,22 +29,31 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 #include <time.h>
 #include <sntp.h>
 
-#include "user_common.h"
+#include "user_config.h"
+#include "common.h"
 #include "ota_upgrade.h"
-#include "mqtt/mqtt.h"
-#include "mqtt/utils.h"
+#include "mqtt_config.h"
+#include "mqtt.h"
+#include "utils.h"
 #include "config.h"
 #include "wifi.h"
 #include "dst.h"
 #include "wiringESP.h"
+#include "mcp23017.h"
+}
 
 // global variables
+LOCAL Mcp23017 m_mcp23017;
 LOCAL MQTT_Client mqttClient;
-LOCAL bool mqtt_connected = false;
-LOCAL bool send_start_time = false;
+LOCAL bool mqtt_connected = FALSE;
+LOCAL bool send_start_time = FALSE;
 LOCAL uint16_t server_version;
+LOCAL uint16_t m_cistern_timeout_time = 0; // [min]
+LOCAL uint16_t m_cistern_timeout_cnt = 0; // [min]
 LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
+LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
+LOCAL os_timer_t m_cistern_timeout_timer; // timer to timeout cistern pump
 #define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
@@ -49,7 +61,8 @@ LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
 enum sig_main_task {
 	SIG_CISTERN = 0,
 	SIG_DOOR_CHANGE,
-	SIG_UPGRADE
+	SIG_UPGRADE,
+	SIG_CISTERN_LVL,
 };
 const char *rst_reason_text[] = {
 	"normal startup by power on", // REASON_DEFAULT_RST = 0
@@ -153,16 +166,93 @@ CheckSntpStamp_Cb(void *arg)
 		INFO("sntp: %d, %s" CRLF, current_stamp, time_str);
 		MQTT_Publish(&mqttClient,
 			"/devices/" HOMA_SYSTEM_ID "/controls/Start time",
-			time_str, os_strlen(time_str), 1, 1);
-		send_start_time = true; // do not resend start time until we reboot
+			time_str, os_strlen(time_str), 1, TRUE);
+		send_start_time = TRUE; // do not resend start time until we reboot
 	}
+}
+
+/**
+ ******************************************************************
+ * @brief  Cistern pump timeout timer callback.
+ * @author Holger Mueller
+ * @date   2018-05-22
+ *
+ * @param  arg - NULL, not used.
+ ******************************************************************
+ */
+LOCAL void ICACHE_FLASH_ATTR
+CisternTimeoutTimer_Cb(void *arg)
+{
+	bool ret;
+
+	if (m_cistern_timeout_cnt != 0) {
+		m_cistern_timeout_cnt--;
+		if (m_cistern_timeout_cnt == 0) {
+			os_timer_disarm(&m_cistern_timeout_timer);
+			// switch pump off in main task
+			ret = system_os_post(MAIN_TASK_PRIO, SIG_CISTERN, OFF);
+			if (!ret) {
+				ERROR("%s: system_os_post() failed, retry in 98 ms" CRLF, __FUNCTION__);
+				m_cistern_timeout_cnt = 1;
+				os_timer_arm(&m_cistern_timeout_timer, 98, FALSE);
+			}
+		}
+	} else {
+		DEBUG("%s: Timer with m_cistern_timeout_cnt == 0 elapsed." CRLF, __FUNCTION__);
+		os_timer_disarm(&m_cistern_timeout_timer);
+	}
+}
+
+/**
+ ******************************************************************
+ * @brief  Cistern level loop timer callback.
+ * @author Holger Mueller
+ * @date   2018-05-11, 2018-05-26
+ *
+ * @param  arg - NULL, not used.
+ ******************************************************************
+ */
+LOCAL void ICACHE_FLASH_ATTR
+CisternLvlTimer_Cb(void *arg)
+{
+	bool ret;
+
+	// read the level in main task
+	ret = system_os_post(MAIN_TASK_PRIO, SIG_CISTERN_LVL, 0);
+	if (!ret) {
+		ERROR("%s: system_os_post() failed." CRLF, __FUNCTION__);
+	}
+}
+
+/**
+ ******************************************************************
+ * @brief  Calculate percentage of bit level value.
+ * @author Holger Mueller
+ * @date   2018-05-18
+ *
+ * @param  cistern_lvl - Bit value of cistern level (0x1=10%, 0x3=20%, ...).
+ * @return Percentage value (0 .. 100)
+ ******************************************************************
+ */
+//
+LOCAL uint8_t ICACHE_FLASH_ATTR
+CisternGetPercent(uint16_t cistern_lvl)
+{
+	uint8_t cistern_percent = 0;
+
+	while (cistern_lvl & 0x01) {
+		cistern_percent++;
+		cistern_lvl >>= 1;
+	}
+
+	return cistern_percent * 10;
 }
 
 /**
  ******************************************************************
  * @brief  MQTT callback broker connected.
  * @author Holger Mueller
- * @date   2018-03-15
+ * @date   2018-03-15, 2018-05-26
  * Subscribes to /sys topics, publishes HomA /devices/ structure.
  *
  * @param  args - MQTT_Client structure pointer.
@@ -176,46 +266,51 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Client *client = (MQTT_Client *) args;
 
 	INFO("MQTT: Connected" CRLF);
-	mqtt_connected = true;
+	mqtt_connected = TRUE;
 
-	MQTT_Subscribe(client, "/sys/" HOMA_SYSTEM_ID "/#", 2);
+	MQTT_Subscribe(client, "/sys/" HOMA_SYSTEM_ID "/#", 1);
 
 	// setup HomA device topics
 	//MQTT_Publish(*client, topic, data, data_length, qos, retain)
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, TRUE);
 	
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
 	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/type", "switch", 6, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, 1);
-	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 2);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern", "0", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/type", "switch", 6, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
+	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern",
+			digitalRead(PIN_CISTERN) == OFF ? "0" : "1", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/type", "text", 4, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/unit", " %%", 2, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
 
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/order", "1", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/order", "2", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "3", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "4", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "5", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "6", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/order", "1", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/order", "2", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/order", "3", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "4", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "5", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "6", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "7", 1, 1, TRUE);
 	
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
-		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, 1);
+		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, TRUE);
 	itoa(app_version, APP_VERSION);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version",
-		app_version, os_strlen(app_version), 1, 1);
+		app_version, os_strlen(app_version), 1, TRUE);
 	rst_reason = (char *) rst_reason_text[system_get_rst_info()->reason];
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason",
-		rst_reason, os_strlen(rst_reason), 1, 1);
+		rst_reason, os_strlen(rst_reason), 1, TRUE);
 
 	// do only resend start time if we reboot,
 	// do not if we got a Wifi reconnect ...
 	if (!send_start_time) {
 		os_timer_disarm(&sntp_timer);
 		os_timer_setfn(&sntp_timer, (os_timer_func_t *)CheckSntpStamp_Cb, NULL);
-		os_timer_arm(&sntp_timer, 100, true);
+		os_timer_arm(&sntp_timer, 100, TRUE);
 	}
 }
 
@@ -233,7 +328,7 @@ MqttDisconnected_Cb(uint32_t * args)
 {
 	MQTT_Client *client = (MQTT_Client *) args;
 	INFO("MQTT: Disconnected" CRLF);
-	mqtt_connected = false;
+	mqtt_connected = FALSE;
 }
 
 /**
@@ -256,7 +351,7 @@ MqttPublished_Cb(uint32_t * args)
  ******************************************************************
  * @brief  MQTT callback message/topic received.
  * @author Holger Mueller
- * @date   2017-06-08, 2018-03-15
+ * @date   2017-06-08, 2018-03-15, 2018-05-22
  *
  * @param  args - MQTT_Client structure pointer.
  ******************************************************************
@@ -289,10 +384,13 @@ MqttData_Cb(uint32_t *args, const char *topic_raw, uint32_t topic_len, const cha
 			// tell user that upgrade is in progress
 			os_sprintf(versionBuf, "upgrading to %d", server_version);
 			MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version",
-				versionBuf, os_strlen(versionBuf), 1, 1);
+				versionBuf, os_strlen(versionBuf), 1, TRUE);
 			// do the main work in a Task, not here in the callback
 			system_os_post(MAIN_TASK_PRIO, SIG_UPGRADE, 0);
 		}
+	} else if (strcmp(topic, "/sys/" HOMA_SYSTEM_ID "/cistern_time") == 0) {
+		m_cistern_timeout_time = atoi(data);
+		INFO("Received cistern_time %d" CRLF, m_cistern_timeout_time);
 	} else if (os_strncmp(topic, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on",
 			os_strlen("/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on")) == 0) {
 		// the cistern pump should be switched on or off
@@ -479,7 +577,7 @@ DoorPinChange_Cb(void)
  ******************************************************************
  * @brief  Main task for publishing data.
  * @author Holger Mueller
- * @date   2018-03-15
+ * @date   2018-03-15, 2018-05-18, 2018-05-22
  *
  * @param  *event_p - message queue pointer set by system_os_post().
  ******************************************************************
@@ -487,24 +585,47 @@ DoorPinChange_Cb(void)
 LOCAL void ICACHE_FLASH_ATTR
 Main_Task(os_event_t *event_p)
 {
-	float windspeed;
-	char speed_str[20];
+	uint16_t cistern_lvl;
+	uint8_t cistern_percent;
+	char cistern_str[10];
 
 	switch (event_p->sig) {
 	case SIG_CISTERN:
 		INFO("%s: Got signal 'SIG_CISTERN'. par=%d" CRLF, __FUNCTION__, event_p->par);
 		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern",
-				event_p->par == ON ? "1" : "0", 1, 1, 1);
+				event_p->par == ON ? "1" : "0", 1, 1, TRUE);
 		digitalWrite(PIN_CISTERN, event_p->par);
+		// set timeout of cistern pump (auto switch off)
+		if (event_p->par == ON) {
+			os_timer_disarm(&m_cistern_timeout_timer);
+			m_cistern_timeout_cnt = m_cistern_timeout_time;
+			os_timer_setfn(&m_cistern_timeout_timer, (os_timer_func_t *)CisternTimeoutTimer_Cb, NULL);
+			os_timer_arm(&m_cistern_timeout_timer, 60 * 1000, TRUE); // 1 min timer
+		} else {
+			os_timer_disarm(&m_cistern_timeout_timer);
+			m_cistern_timeout_cnt = 0;
+		}
+		break;
+	case SIG_CISTERN_LVL:
+		INFO("%s: Got signal 'SIG_CISTERN_LVL'." CRLF, __FUNCTION__);
+		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, LOW); // start measurement
+		delay(50); // wait 50 ms to settle measurement
+		cistern_lvl = m_mcp23017.digitalRead16() & 0x03FF;
+		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // stop measurement (BTN off)
+		cistern_percent = CisternGetPercent(cistern_lvl);
+		itoa(cistern_str, cistern_percent);
+		INFO("%s: MCP23017 cistern_lvl=0x%X, cistern_percent=%s" CRLF, __FUNCTION__, cistern_lvl, cistern_str);
+		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level",
+			cistern_str, os_strlen(cistern_str), 1, TRUE);
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
 		if (0 == event_p->par) {
 			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-					"open", 4, 1, 1);
+					"closed", 6, 1, TRUE);
 		} else {
 			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-					"closed", 6, 1, 1);
+					"open", 4, 1, TRUE);
 		}
 		break;
 	case SIG_UPGRADE:
@@ -525,7 +646,7 @@ Main_Task(os_event_t *event_p)
  ******************************************************************
  * @brief  Main user init function.
  * @author Holger Mueller
- * @date   2018-03-15
+ * @date   2018-03-15, 2018-05-11
  ******************************************************************
  */
 void ICACHE_FLASH_ATTR
@@ -533,12 +654,13 @@ user_init(void)
 {
 	// if you do not set the uart, ESP8266 will start with 74880 baud :-(
 	//uart_div_modify(0, UART_CLK_FREQ / 115200);
-	INFO(CRLF CRLF "SDK version: %s" CRLF, system_get_sdk_version());
-	INFO("Garage version %d" CRLF, APP_VERSION);
+	INFO("SDK version: %s" CRLF, system_get_sdk_version());
 	INFO("Reset reason: %s" CRLF, rst_reason_text[system_get_rst_info()->reason]);
+	INFO("Garage version: %d" CRLF, APP_VERSION);
+	INFO("HomA device ID: %s" CRLF, HOMA_SYSTEM_ID);
 
-	mqtt_connected = false;
-	send_start_time = false;
+	mqtt_connected = FALSE;
+	send_start_time = FALSE;
 	CFG_Load();
 
 #ifdef WPS
@@ -560,16 +682,28 @@ user_init(void)
 	pinMode(PIN_CISTERN, OUTPUT);
 	digitalWrite(PIN_CISTERN, OFF);
 
+	// setup cyclic sending of cistern level
+	os_timer_disarm(&cistern_lvl_timer);
+	os_timer_setfn(&cistern_lvl_timer, (os_timer_func_t *)CisternLvlTimer_Cb, NULL);
+	os_timer_arm(&cistern_lvl_timer, CISTERN_LVL_TIMER, TRUE);
+
 	// setup MQTT
 	//MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
 	MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, MQTT_SECURITY);
 	//MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
-	MQTT_InitClient(&mqttClient, sysCfg.device_id, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, 1);
-	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
+	MQTT_InitClient(&mqttClient, sysCfg.device_id, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, FALSE);
+	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, FALSE);
 	MQTT_OnConnected(&mqttClient, MqttConnected_Cb);
 	MQTT_OnDisconnected(&mqttClient, MqttDisconnected_Cb);
 	MQTT_OnPublished(&mqttClient, MqttPublished_Cb);
 	MQTT_OnData(&mqttClient, MqttData_Cb);
+
+	// setup MCP23017 GPIO expander
+	INFO("MCP23017 setup ..." CRLF);
+	m_mcp23017.begin(PIN_SDA, PIN_SCL, 0xFF, 0xFF, 0xFF, 0x03, 0xFF, 0x03);
+	m_mcp23017.pinMode(CISTERN_LVL_BTN, MCP23017_OUTPUT);
+	m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // HIGH is BTN not pressed
+	m_mcp23017.dumpRegs();
 
 	INFO("System started." CRLF CRLF);
 }
