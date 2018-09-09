@@ -20,6 +20,10 @@ Start the application manually
 ```none
 $ ./gas_meter.py
 ```
+To set the current counter use
+```none
+mosquitto_pub -r -t "/devices/123456-gas-meter/controls/Count" -m "123.4"
+```
 
 ### Systemd
 If your system supports it, you can start the application as a daemon from systemd by using the provided template.
