@@ -29,7 +29,7 @@ mqtt_controls_arr = [
 	{'device': '123456-solar', 'control': 'Kollektortemperatur', 'room': 'Home'},
 	{'device': '123456-vito', 'control': 'Aussentemperatur', 'room': 'Home'},
 	{'device': '123456-windsensor', 'control': 'Wind speed', 'room': 'Home'},
-	{'device': '123456-gas-meter', 'control': 'Counter', 'room': 'Home'}]
+	{'device': '123456-gas-meter', 'control': 'Count', 'room': 'Home'}]
 #	{'device': '123456-rcplugs-11111-10000', 'control': 'Power 1', 'room': 'Home'},
 #	{'device': '123456-rcplugs-11111-01000', 'control': 'Power 2', 'room': 'Home'},
 #	{'device': '123456-rcplugs-11111-00100', 'control': 'Power 3', 'room': 'Home'}]
