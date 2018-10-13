@@ -26,7 +26,6 @@ This component is an ESP8266 project of a garage unit (e.g. to check garage door
 #define STA_PASS	""
 
 #endif // __USER_SECRET_H__
-
 ```
 * Compile the project
 ```none
@@ -42,3 +41,10 @@ $ make flash
 $ make publish
 ```
 
+### Usage
+* Use HomA app to view and control garage unit.
+* To set max. cistern pump time in minutes use
+```none
+$ mosquitto_pub -r -t "/sys/123456-garage/cistern_time" -m "60"
+```
+Do disable max. shut off time set 0 (default).
