@@ -18,8 +18,11 @@ debug = False
 systemId = "123456-min-max-saver"
 # config min/max saver here
 mqtt_arr = [
-	{'saver': 'max', 'system': '123457-windsensor', 'control': 'Wind speed', 'time': '1'},
 	{'saver': 'max', 'system': '123456-windsensor', 'control': 'Wind speed', 'time': '24'},
+	{'saver': 'min', 'system': '123456-vito', 'control': 'Aussentemperatur', 'time': '24'},
+	{'saver': 'max', 'system': '123456-vito', 'control': 'Aussentemperatur', 'time': '24'},
+	{'saver': 'min', 'system': '123456-vito', 'control': 'Raumtemperatur', 'time': '24'},
+	{'saver': 'max', 'system': '123456-vito', 'control': 'Raumtemperatur', 'time': '24'},
 	{'saver': 'min', 'system': '123456-energy', 'control': 'Current Power', 'time': '24'},
 	{'saver': 'max', 'system': '123456-energy', 'control': 'Current Power', 'time': '24'}]
 
