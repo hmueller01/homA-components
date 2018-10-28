@@ -1,0 +1,9 @@
+{
+  "name": "fcm",
+  "version": "0.1.0",
+  "private": "true",
+  "dependencies": {
+    "homa": ">=0.2.0",
+    "googleapis": ">=1.0.0"
+  }
+}

@@ -16,6 +16,7 @@ import mqtt_config		# defines host, port, user, pwd, ca_certs
 debug = False
 systemId = "123456-garage"
 #room = "Garage"
+# switch off time [min] after that cistern pump gets switched off
 cistern_time = "60"
 
 def get_topic(t1 = None, t2 = None, t3 = None):
