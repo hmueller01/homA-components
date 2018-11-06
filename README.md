@@ -8,6 +8,7 @@ For more information see the [HomA wiki](https://github.com/binarybucks/homA/wik
 ### Components
 Overview of available components
 - [energy](https://github.com/hmueller01/homA-components/tree/master/energy): Shows the current power and total energy read by an IR connector
+- [fcm](https://github.com/hmueller01/homA-components/tree/master/fcm): Sends Firebase Cloud Message (FCM) messages to subscribed clients
 - [garage](https://github.com/hmueller01/homA-components/tree/master/garage): An ESP8266 project of a garage unit (e.g. to check garage door status, etc.)
 - [gas_meter](https://github.com/hmueller01/homA-components/tree/master/gas_meter): Measures the gas consumption of an old gas meter using a retro-reflective sensor
 - [min_max_saver](https://github.com/hmueller01/homA-components/tree/master/min_max_saver): A universal min/max value saver

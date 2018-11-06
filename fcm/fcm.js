@@ -2,8 +2,8 @@
 /**
  * Firebase Cloud Messaging (FCM) can be used to send messages to clients on iOS, Android and Web.
  *
- * This script subscribes to HomA MQTT messages and uses FCM to send messages to clients 
- * that are subscribed to the `news` topic. 
+ * This script subscribes to HomA MQTT messages and uses FCM to send messages to clients
+ * that are subscribed to the `news` topic.
  */
 var debug = false;
 const https = require('https');
