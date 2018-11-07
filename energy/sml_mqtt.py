@@ -113,11 +113,12 @@ print("Reading sml obis data from stdin forever. Press Ctrl-C to break.")
 #for line in sys.stdin: # does not work with piping, because reads to eof!
 while True:
 	try:
-		line = sys.stdin.readline()
+#		line = sys.stdin.readline()
+		line = raw_input()
 		if DEBUG: print(line)
 		scan_line(line)
-	except (KeyboardInterrupt, SystemExit):
-		print '\nKeyboardInterrupt found! Stopping program.'
+	except (KeyboardInterrupt, SystemExit, EOFError):
+		print '\nKeyboardInterrupt or EOF found! Stopping program.'
 		break
 
 # wait until all queued topics are published
