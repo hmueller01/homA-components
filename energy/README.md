@@ -55,12 +55,14 @@ $ cd libsml
 $ make
 $ sudo make install
 $ cd ..
+```
+Build and install `sml2mqtt`
+```none
 $ mkdir build; cd build
 $ cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
 $ make
 $ sudo make install
 ```
-Modify `/usr/local/lib/systemd/system/sml2mqtt.service` to your needs.
 
 ### Usage
 Start the application manually
@@ -70,12 +72,14 @@ sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P passw
 
 ### Systemd
 If your system supports it, you can start the application as a daemon from systemd by using the provided template.
+
+Modify `/usr/local/lib/systemd/system/sml2mqtt.service` to your needs.
 ```none
 $ sudo systemctl --system daemon-reload
 $ sudo systemctl start sml2mqtt.service
 ```
 
 Logs are then availble in the systemd journal
-```
+```none
 $ sudo journalctl -u sml2mqtt.service -n 100 -f
 ```
