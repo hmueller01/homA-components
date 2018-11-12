@@ -29,20 +29,22 @@
 #include <iostream>
 #include <string>
 
-MqttClient::MqttClient(const char * host, int port, int qos, const char * baseTopic, const char * id, const char * username, const char * password, const char * subscribeTopic) :
+MqttClient::MqttClient(const char * host, int port, int qos, const char * baseTopic, const char * id, const char * username, const char * password, bool verbose) :
     mosqpp::mosquittopp(id),
+    m_verbose(verbose),
     m_qos(qos),
     m_baseTopic(baseTopic),
-    m_subscribeTopic(subscribeTopic),
     m_topicPayloads(),
     m_topicPayloadsMutex()
 {
     /* set last will */
+    /*
     std::string topic = m_baseTopic + "/$state";
     std::string payload = "lost";
     if (will_set(topic.c_str(), payload.length(), payload.c_str(), m_qos, true) != MOSQ_ERR_SUCCESS) {
         std::cerr << "MqttClient::MqttClient: will_set failed" << std::endl;
     }
+    */
 
     /* username/password */
     if (username_pw_set(username, password) != MOSQ_ERR_SUCCESS) {
@@ -61,11 +63,13 @@ MqttClient::MqttClient(const char * host, int port, int qos, const char * baseTo
 MqttClient::~MqttClient()
 {
     /* disconnect */
+    /*
     std::string topic = m_baseTopic + "/$state";
     std::string payload = "disconnected";
     if (publish(nullptr, topic.c_str(), payload.length(), payload.c_str(), m_qos, true) != MOSQ_ERR_SUCCESS) {
         std::cerr << "MqttClient::~MqttClient: publish failed" << std::endl;
     }
+    */
     if (disconnect() != MOSQ_ERR_SUCCESS) {
         std::cerr << "MqttClient::~MqttClient: disconnect failed" << std::endl;
     }
@@ -89,7 +93,9 @@ void MqttClient::setTopic(std::string topic, std::string payload)
     if (publish(nullptr, topic.c_str(), payload.length(), payload.c_str(), m_qos, true) != MOSQ_ERR_SUCCESS) {
         std::cerr << "MqttClient::publishOnChange: publish failed" << std::endl;
     }
-    std::cout << topic << " set to " << payload << std::endl;
+    if (m_verbose) {
+        std::cout << topic << " set to " << payload << std::endl;
+    }
 }
 
 std::string MqttClient::getTopic(std::string topic, std::string defaultValue) const

@@ -63,6 +63,7 @@ int main(int argc, char ** argv)
     std::string host = "localhost";
     int port = 1883;
     int qos = 1;
+    bool verbose = false;
     std::string topic = "/devices/123456-energy/controls";
     std::string id = "sml2mqtt";
     std::string username = "";
@@ -71,7 +72,7 @@ int main(int argc, char ** argv)
 
     /* evaluate command line parameters */
     int c;
-    while ((c = getopt (argc, argv, "h:p:q:t:i:u:P:d:")) != -1) {
+    while ((c = getopt(argc, argv, "h:p:q:t:i:u:P:d:v?")) != -1) {
         switch (c) {
         case 'h':
             host = optarg;
@@ -97,8 +98,11 @@ int main(int argc, char ** argv)
         case 'd':
             device = optarg;
             break;
+        case 'v':
+            verbose = true;
+            break;
         default:
-            std::cerr << "Usage: sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device]" << std::endl;
+            std::cout << "Usage: sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device] -v" << std::endl;
             return EXIT_FAILURE;
         }
     }
@@ -114,7 +118,7 @@ int main(int argc, char ** argv)
     }
 
     /* start MqttClient */
-    mqttClient() = new MqttClient(host.c_str(), port, qos, topic.c_str(), id.c_str(), username.c_str(), password.c_str(), "#/set");
+    mqttClient() = new MqttClient(host.c_str(), port, qos, topic.c_str(), id.c_str(), username.c_str(), password.c_str(), verbose);
 
 
     // check if MQTT client is available

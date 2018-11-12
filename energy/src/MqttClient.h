@@ -30,7 +30,7 @@
 class MqttClient : private mosqpp::mosquittopp
 {
 public:
-    MqttClient(const char * host, int port, int qos, const char * baseTopic, const char * id, const char * username, const char * password, const char * subscribeTopic);
+    MqttClient(const char * host, int port, int qos, const char * baseTopic, const char * id, const char * username, const char * password, bool verbose = false);
     virtual ~MqttClient();
 
     /**
@@ -57,11 +57,11 @@ private:
     /** qos */
     int m_qos;
 
+    /** verbose mode */
+    bool m_verbose;
+
     /** base topic */
     std::string m_baseTopic;
-
-    /** subscribe topic */
-    std::string m_subscribeTopic;
 
     /** map of payload per topic, to detect changes */
     std::map<std::string, std::string> m_topicPayloads;

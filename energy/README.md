@@ -67,7 +67,7 @@ $ sudo make install
 ### Usage
 Start the application manually
 ```none
-sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device]
+sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device] -v
 ```
 
 ### Systemd
