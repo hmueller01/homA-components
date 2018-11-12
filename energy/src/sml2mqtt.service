@@ -1,0 +1,11 @@
+[Unit]
+Description=Capture SML meter readings and publishes them on MQTT HomA framework
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/sml2mqtt -h server -u user -P password -d /dev/vzir0
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

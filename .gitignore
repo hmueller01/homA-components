@@ -72,3 +72,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Mac files
+.DS_Store

@@ -1,6 +1,11 @@
 # HomA - Energy
 This component shows the current power and total energy read by an IR connector (e.g. IR-Kopf by [volkszaehler.org](http://wiki.volkszaehler.org/)) in the framework's interfaces.
 
+There are two possible ways to read and publish the energy values.
+(1) Using the libsml example `sml_server` and the Python script `sml_mqtt.py`.
+(2) A C++ program `sml2mqtt` using the lib libsml and mosquittopp
+
+## (1) Python script approach
 
 ### Installation
 Install the required dependencies
@@ -35,4 +40,30 @@ $ sudo systemctl start homa@energy.service
 Logs are then availble in the systemd journal 
 ```
 $ sudo journalctl -u homa@energy.service -n 100 -f
+```
+
+
+## (2) C++ approach
+This is based on the work of [https://bitbucket.org/tobylorenz/sml2mqtt/overview](Tobias Lorenz).
+
+### Installation
+Install the required dependencies
+```none
+$ apt-get install libmosquittopp-dev
+$ git clone https://github.com/hmueller01/libsml.git
+$ cd libsml
+$ make
+$ sudo make install
+$ cd ..
+$ mkdir build; cd build
+$ cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+$ make
+$ sudo make install
+```
+Modify ```/lib/systemd/system/sml2mqtt.service``` to your needs.
+
+### Usage
+Start the application manually
+```none
+sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device]
 ```
