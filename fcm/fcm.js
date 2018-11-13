@@ -3,31 +3,37 @@
  * Firebase Cloud Messaging (FCM) can be used to send messages to clients on iOS, Android and Web.
  *
  * This script subscribes to HomA MQTT messages and uses FCM to send messages to clients
- * that are subscribed to the `news` topic.
+ * that are subscribed to the FCM_TOPIC.
  */
 var debug = false;
 const https = require('https');
 var fs = require('fs');
 var {google} = require('googleapis');
-const PROJECT_ID = 'solar-8610b';
+var homa = require('homa');
+const key = require('./service-account.json');
+const options = require('./fcm-options.json');
 const HOST = 'fcm.googleapis.com';
-const PATH = '/v1/projects/' + PROJECT_ID + '/messages:send';
+const PATH = '/v1/projects/' + key.project_id + '/messages:send';
 const MESSAGING_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
 const SCOPES = [MESSAGING_SCOPE];
-const MQTT_OPTIONS_FILE = './mqtt-options.json';
-const FCM_KEY_FILE = './service-account.json';
-const FCM_TOPIC = 'news';
+const FCM_TOPIC = options.topic;
 
-var homa = require('homa'); // Require homA module that contains many helper methods
-var systemId = homa.paramsWithDefaultSystemId("123456-garage"); // Load command-line parameters and set the default SystemId
-
+// for homa.params.brokerPort use 
+//   1. command line parameter, 2. options.brokerPort, 3. env HOMA_BROKER_PORT, 4. 1883
+homa.params = homa.params.default("brokerPort", options.brokerPort == 0 ? process.env.HOMA_BROKER_PORT ? process.env.HOMA_BROKER_PORT : 1883 : options.brokerPort);
+// for homa.params.brokerHost use 
+//   1. command line parameter, 2. options.brokerHost, 3. env HOMA_BROKER_HOST
+// if all three are empty demand brokerHost as required
+homa.params = homa.params.default("brokerHost", options.brokerHost == "" ? process.env.HOMA_BROKER_HOST : options.brokerHost);
+if (homa.params.brokerHost == "")
+	homa.params = homa.params.demand("brokerHost");
+var systemId = homa.paramsWithDefaultSystemId(options.systemId); // Load command-line parameters and set the default SystemId
 
 /**
  * Get a valid OAuth access token.
  */
 function getAccessToken() {
 	return new Promise(function(resolve, reject) {
-		var key = require(FCM_KEY_FILE);
 		var jwtClient = new google.auth.JWT(
 			key.client_email,
 			null,
@@ -119,10 +125,9 @@ function buildMessage(topic, title, body, color, tag) {
 }
 
 
-// Connect to the broker
+// Connects to the broker when the application is started
 (function connect() {
-	var options = require(MQTT_OPTIONS_FILE);
-	homa.mqttHelper.connect(null, null, options);
+	homa.mqttHelper.connect(null, null, options.mqtt_connect);
 })();
 
 // Called after the connection to the broker is established
@@ -136,7 +141,7 @@ homa.mqttHelper.on('connect', function(packet) {
 // Called when a MQTT message for a subscribed topic is received
 homa.mqttHelper.on('message', function(packet) {
 	console.log("MQTT received message: %s = %s", packet.topic, packet.payload);
-	if (packet.topic == "/devices/"+ systemId + "/controls/Garage door") {
+	if (packet.topic == "/devices/" + systemId + "/controls/Garage door") {
 		var color = '#00FF00'; // green
 		if (packet.payload == "open") {
 			color = '#FF0000'; // red

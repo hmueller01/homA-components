@@ -1,0 +1,10 @@
+{
+  "topic": "news",
+  "brokerHost": "localhost",
+  "brokerPort": 0,
+  "systemId": "123456-garage",
+  "mqtt_connect": {
+    "username": "",
+    "password": ""
+  }
+}
