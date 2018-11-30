@@ -1,7 +1,7 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 27
+#define APP_VERSION 28
 
 #define WPS						// enable WPS
 
@@ -10,12 +10,12 @@
 
 #define OTA_HOST "update.euhm"	// IP or domain name
 #define OTA_PORT 80
-#define OTA_PATH "/esp8266fw/rcswitch/"
+#define OTA_PATH "/esp8266fw/rcplugs/"
 
 // HomA definitions
-#define HOMA_SYSTEM_ID	"123457-rcplugs"
-//#define HOMA_DEVICE		"rcplugs"
-//#define HOMA_ROOM		"rcPlugs"
+#define HOMA_SYSTEM_ID "123456-rcplugs"
+//#define HOMA_DEVICE "rcplugs"
+//#define HOMA_ROOM "rcPlugs"
 
 // configuration of GPIO pins
 #define PIN_433TX		12

@@ -19,7 +19,7 @@
 VERBOSE		= 0
 
 # name for the target project
-TARGET		= rcswitch
+TARGET		= rcplugs
 
 # Output directors to store intermediate compiled files
 # relative to the project directory
@@ -43,7 +43,7 @@ GEN_APPBIN	?= python $(SDK_BASE)/tools/gen_appbin.py
 
 # Server and location on update server for new firmware
 UPDATE_SERVER	:= $(shell grep "^\#define OTA_HOST" include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
-UPDATE_PATH		:= /var/www/html/esp8266fw/rcswitch
+UPDATE_PATH		:= /var/www/html/esp8266fw/rcplugs
 
 # MQTT settings to publish new firmware to target
 MQTT_PUB		:= mosquitto_pub

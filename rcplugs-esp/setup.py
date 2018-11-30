@@ -23,7 +23,7 @@ import mqtt_config		# defines host, port, user, pwd, ca_certs
 
 # config here ...
 debug = False
-systemId = "123457-rcplugs"
+systemId = "123456-rcplugs"
 room = "rcPlugs"
 # config plugs here
 # topic systemId is build from <systemId>-<systemCode>-<unitCode>
@@ -31,7 +31,7 @@ mqtt_arr = [
 	{'topic': '11111-10000', 'type': 'typeA', 'room': 'Home', 'device': 'Stern', 'control': 'Power A'},
 	{'topic': '11111-01000', 'type': 'typeA', 'room': 'Home', 'device': 'Weihnachtsbaum', 'control': 'Power B'},
 	{'topic': '11111-00100', 'type': 'typeA', 'room': 'Home', 'device': 'Lichterkette aussen', 'control': 'Power C'},
-	{'topic': '11111-00010', 'type': 'typeA', 'room': '', 'device': '11111-00010', 'control': 'Power D'},
+	{'topic': '11111-00010', 'type': 'typeA', 'room': '', 'device': 'Schwibbogen', 'control': 'Power D'},
 	{'topic': '11111-00001', 'type': 'typeA', 'room': '', 'device': '11111-00001', 'control': 'Power E'}]
 
 
@@ -70,6 +70,11 @@ def homa_remove(mqttc):
 	print("Removing HomA rcplugs data (systemId %s) ..." % systemId)
 	mqttc.publish("/devices/%s/meta/room" % systemId, "", retain=True)
 	mqttc.publish("/devices/%s/meta/name" % systemId, "", retain=True)
+	mqttc.publish("/devices/%s/controls/Device id" % systemId, "", retain=True)
+	mqttc.publish("/devices/%s/controls/Version" % systemId, "", retain=True)
+	mqttc.publish("/devices/%s/controls/Reset reason" % systemId, "", retain=True)
+	mqttc.publish("/devices/%s/controls/Start time" % systemId, "", retain=True)
+	mqttc.publish("/devices/%s/controls/State" % systemId, "", retain=True)
 	# setup controls
 	for mqtt_dict in mqtt_arr:
 		mqttc.publish("/sys/%s/%s/%s" % (systemId, mqtt_dict['topic'], mqtt_dict['control']), "", retain=True)
