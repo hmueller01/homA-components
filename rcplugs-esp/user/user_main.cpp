@@ -1,8 +1,8 @@
 /**
  * @file
- * @brief rcswitch main application
+ * @brief rcplugs main application
  *
- * This is a HomA/MQTT rcswitch unit.
+ * This is a HomA/MQTT rc-switch unit.
  *
  * Params are loaded, WiFi init, MQTT setup and GPIO keys are set.
  * Sensor pulses are counted using an interrupt.
@@ -208,6 +208,8 @@ MqttConnected_Cb(uint32_t *args)
 	rst_reason = (char *) rst_reason_text[system_get_rst_info()->reason];
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason",
 		rst_reason, os_strlen(rst_reason), 1, 1);
+	// set LWT message, that we are alive
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State", "online", 6, 1, TRUE);
 
 	// do only resend start time if we reboot,
 	// do not if we got a Wifi reconnect ...
@@ -504,7 +506,7 @@ user_init(void)
 	// if you do not set the uart, ESP8266 will start with 74880 baud :-(
 	//uart_div_modify(0, UART_CLK_FREQ / 115200);
 	INFO(CRLF CRLF "SDK version: %s" CRLF, system_get_sdk_version());
-	INFO("rcswitch version %d" CRLF, APP_VERSION);
+	INFO("rcplugs-esp version %d" CRLF, APP_VERSION);
 	INFO("Reset reason: %s" CRLF, rst_reason_text[system_get_rst_info()->reason]);
 
 	mqtt_connected = false;
@@ -532,7 +534,8 @@ user_init(void)
 	MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, MQTT_SECURITY);
 	//MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
 	MQTT_InitClient(&mqttClient, sysCfg.device_id, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, 1);
-	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
+	MQTT_InitLWT(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/State", "offline", 1, TRUE);
+
 	MQTT_OnConnected(&mqttClient, MqttConnected_Cb);
 	MQTT_OnDisconnected(&mqttClient, MqttDisconnected_Cb);
 	MQTT_OnPublished(&mqttClient, MqttPublished_Cb);
