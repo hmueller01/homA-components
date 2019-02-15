@@ -16,6 +16,8 @@
 # 2017/10/24 initial revision
 # 2017/10/28 setting/coping unit of min/max value from controlId
 # 2018/03/14 Changed constants to caps, changes order of functions for easier reading
+# 2019/02/15 Fixed a bug with utf-8 payload messages and Python string functions,
+#            fixed bug that messages are not resubscribed after a broker restart (reboot)
 
 import sys
 import time
@@ -29,6 +31,10 @@ import setup
 # config here ...
 debug = False
 systemId = setup.systemId # "123456-min-max-saver"
+
+# use utf8 encoding in all string related functions (e.g. str())
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 saver_arr = [] # buffer of registered saver, contents:
 # {'saver': min/max, 'system': <systemId>, 'control': <controlId>, 
@@ -76,14 +82,14 @@ def addSaver(client, saver, system, control, timeStr):
 		nextResetTime = getNextResetTime(timeValue)
 		saver_arr.append({'saver': saver, 'system': system, 'control': control, 'time': timeValue, 'nextReset': nextResetTime, 'value': 'SNA'})
 		if debug: print saver_arr
-		# subscribe topic "/devices/<system>/controls/<control>"
-		# e.g. "/devices/123456-energy/controls/Current Power"
-		client.subscribe(build_topic(system, "controls", control))
-		client.subscribe(build_topic(system, "controls", control, "meta/unit"))
 	else:
-		if debug: print("addSaver(): %s, system: %s, control: %s, time %s updated." % (saver, system, control, time))
+		if debug: print("addSaver(): %s, system: %s, control: %s, time %s updated." % (saver, system, control, timeValue))
 		saver_dict['time'] = timeValue
 		if debug: print saver_arr
+	# subscribe topic "/devices/<system>/controls/<control>"
+	# e.g. "/devices/123456-energy/controls/Current Power"
+	client.subscribe(build_topic(system, "controls", control))
+	client.subscribe(build_topic(system, "controls", control, "meta/unit"))
 	return
  
 def removeSaver(client, saver, system, control):
@@ -143,7 +149,6 @@ def updateSaverUnit(client, system, control, unit):
 # The callback for when the client receives a CONNACK response from the broker.
 def on_connect(client, userdata, flags, rc):
 	if debug: print("on_connect(): Connected with result code "+ str(rc))
-
 	# Subscribing in on_connect() means that if we lose the connection and
 	# reconnect then subscriptions will be renewed.
 	# subscribe topic "/sys/<systemId>/<min/max>/<minSystemId>/<minControlId>"
