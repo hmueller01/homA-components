@@ -6,7 +6,7 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 15
+#define APP_VERSION 17
 
 // define DEBUG_ON to show debug output
 #define DEBUG_ON

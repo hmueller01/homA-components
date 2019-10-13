@@ -252,7 +252,7 @@ CisternGetPercent(uint16_t cistern_lvl)
  ******************************************************************
  * @brief  MQTT callback broker connected.
  * @author Holger Mueller
- * @date   2018-03-15, 2018-05-26
+ * @date   2018-03-15, 2018-05-26, 2019-10-13
  * Subscribes to /sys topics, publishes HomA /devices/ structure.
  *
  * @param  args - MQTT_Client structure pointer.
@@ -295,6 +295,7 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "5", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "6", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "7", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State/meta/order", "8", 1, 1, TRUE);
 	
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
 		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, TRUE);
@@ -304,6 +305,9 @@ MqttConnected_Cb(uint32_t *args)
 	rst_reason = (char *) rst_reason_text[system_get_rst_info()->reason];
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason",
 		rst_reason, os_strlen(rst_reason), 1, TRUE);
+	// set LWT message, that we are alive
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State",
+		"online", 6, 1, TRUE);
 
 	// do only resend start time if we reboot,
 	// do not if we got a Wifi reconnect ...
@@ -646,7 +650,7 @@ Main_Task(os_event_t *event_p)
  ******************************************************************
  * @brief  Main user init function.
  * @author Holger Mueller
- * @date   2018-03-15, 2018-05-11
+ * @date   2018-03-15, 2018-05-11, 2019-10-13
  ******************************************************************
  */
 void ICACHE_FLASH_ATTR
@@ -692,7 +696,7 @@ user_init(void)
 	MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, MQTT_SECURITY);
 	//MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
 	MQTT_InitClient(&mqttClient, sysCfg.device_id, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, FALSE);
-	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, FALSE);
+	MQTT_InitLWT(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/State", "offline", 1, TRUE);
 	MQTT_OnConnected(&mqttClient, MqttConnected_Cb);
 	MQTT_OnDisconnected(&mqttClient, MqttDisconnected_Cb);
 	MQTT_OnPublished(&mqttClient, MqttPublished_Cb);

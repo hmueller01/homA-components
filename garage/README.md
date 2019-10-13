@@ -47,4 +47,4 @@ $ make publish
 ```none
 $ mosquitto_pub -r -t "/sys/123456-garage/cistern_time" -m "60"
 ```
-Do disable max. shut off time set 0 (default).
+To disable max. shut off time set `cistern_time` = 0 (default).
