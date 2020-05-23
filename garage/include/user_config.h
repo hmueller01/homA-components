@@ -6,7 +6,7 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 18
+#define APP_VERSION 19
 
 // define DEBUG_ON to show debug output
 #define DEBUG_ON
@@ -37,6 +37,12 @@
 
 // configuration of cistern level read frequency (10 min.)
 #define CISTERN_LVL_TIMER (10 * 60 * 1000)
+
+// configuration of door pin read frequency (50 ms)
+#define DOOR_PIN_TIMER (50)
+
+// door pin debounce counter (-5 .. 5) -> 500 ms read delay
+#define PIN_DOOR_MAX_CNT 5
 
 #define USE_OPTIMIZE_PRINTF
 

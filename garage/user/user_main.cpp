@@ -50,10 +50,12 @@ LOCAL bool send_start_time = FALSE;
 LOCAL uint16_t server_version;
 LOCAL uint16_t m_cistern_timeout_time = 0; // [min]
 LOCAL uint16_t m_cistern_timeout_cnt = 0; // [min]
+LOCAL sint8_t door_pin_cnt = 0; // debounce counter for door pin
 LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
 LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
 LOCAL os_timer_t m_cistern_timeout_timer; // timer to timeout cistern pump
+LOCAL os_timer_t door_pin_timer; // timer to read door pin
 #define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
@@ -173,6 +175,43 @@ CheckSntpStamp_Cb(void *arg)
 
 /**
  ******************************************************************
+ * @brief  Door pin read timer callback.
+ * @author Holger Mueller
+ * @date   2020-05-23
+ *
+ * @param  arg - NULL, not used.
+ ******************************************************************
+ */
+LOCAL void ICACHE_FLASH_ATTR
+DoorPinTimer_Cb(void *arg)
+{
+	bool ret;
+
+	if (OFF == digitalRead(PIN_DOOR)) {
+		if (door_pin_cnt > -PIN_DOOR_MAX_CNT) {
+			door_pin_cnt--;
+			if (door_pin_cnt == -PIN_DOOR_MAX_CNT) {
+				ret = system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, OFF);
+				if (!ret) {
+					ERROR("%s: system_os_post() failed." CRLF, __FUNCTION__);
+				}
+			}
+		}
+	} else {
+		if (door_pin_cnt < PIN_DOOR_MAX_CNT) {
+			door_pin_cnt++;
+			if (door_pin_cnt == PIN_DOOR_MAX_CNT) {
+				ret = system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, ON);
+				if (!ret) {
+					ERROR("%s: system_os_post() failed." CRLF, __FUNCTION__);
+				}
+			}
+		}
+	}
+}
+
+/**
+ ******************************************************************
  * @brief  Cistern pump timeout timer callback.
  * @author Holger Mueller
  * @date   2018-05-22
@@ -278,7 +317,7 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
-	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
+	// TODO system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/type", "switch", 6, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
 	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 1);
@@ -624,16 +663,13 @@ Main_Task(os_event_t *event_p)
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
-		delay(2); // wait 2 ms to debounce input
-		if (digitalRead(PIN_DOOR) == event_p->par) {
-			// door level the same as in interrupt, otherwise we detected bouncing
-			if (0 == event_p->par) {
-				MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-						"open", 4, 1, TRUE);
-			} else {
-				MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-						"closed", 6, 1, TRUE);
-			}
+		// door level the same as in interrupt, otherwise we detected bouncing
+		if (OFF == event_p->par) {
+			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
+					"open", 4, 1, TRUE);
+		} else {
+			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
+					"closed", 6, 1, TRUE);
 		}
 		break;
 	case SIG_UPGRADE:
@@ -686,9 +722,15 @@ user_init(void)
 
 	// setup needed GPIO pins
 	attachInterrupt(PIN_WPS, WpsPinChange_Cb, CHANGE);
-	attachInterrupt(PIN_DOOR, DoorPinChange_Cb, CHANGE);
+	// TODO attachInterrupt(PIN_DOOR, DoorPinChange_Cb, CHANGE);
+	pinMode(PIN_DOOR, INPUT_PULLUP);
 	pinMode(PIN_CISTERN, OUTPUT);
 	digitalWrite(PIN_CISTERN, OFF);
+
+	// setup cyclic door pin reading
+	os_timer_disarm(&door_pin_timer);
+	os_timer_setfn(&door_pin_timer, (os_timer_func_t *)DoorPinTimer_Cb, NULL);
+	os_timer_arm(&door_pin_timer, DOOR_PIN_TIMER, TRUE);
 
 	// setup cyclic sending of cistern level
 	os_timer_disarm(&cistern_lvl_timer);
