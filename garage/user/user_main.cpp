@@ -10,7 +10,7 @@
  *
  * All configuration is done in "user_config.h".
  */
- 
+
 /*
 Programming Best Practices
 http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
@@ -104,7 +104,7 @@ user_rf_cal_sector_set(void)
 {
 	enum flash_size_map size_map = system_get_flash_size_map();
 	uint32 rf_cal_sec = 0;
-	
+
 	INFO(CRLF);
 	switch (size_map) {
 	case FLASH_SIZE_4M_MAP_256_256:
@@ -274,7 +274,7 @@ MqttConnected_Cb(uint32_t *args)
 	//MQTT_Publish(*client, topic, data, data_length, qos, retain)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, TRUE);
-	
+
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
@@ -296,7 +296,7 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "6", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "7", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State/meta/order", "8", 1, 1, TRUE);
-	
+
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
 		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, TRUE);
 	itoa(app_version, APP_VERSION);
@@ -381,7 +381,7 @@ MqttData_Cb(uint32_t *args, const char *topic_raw, uint32_t topic_len, const cha
 		server_version = atoi(data);
 		INFO("Received server version %d" CRLF, server_version);
 		if (server_version <= APP_VERSION) {
-			INFO("%s: No upgrade. Server version=%d, local version=%d" CRLF, 
+			INFO("%s: No upgrade. Server version=%d, local version=%d" CRLF,
 				__FUNCTION__, server_version, APP_VERSION);
 			server_version = 0; // reset server version
 		} else {
@@ -497,7 +497,7 @@ WifiWpsHandleEvent_Cb(System_Event_t *evt_p)
  * @author Holger Mueller
  * @date   2017-06-06
  *
- * @param  status - WiFi status. See wifi.c and 
+ * @param  status - WiFi status. See wifi.c and
  *                  wifi_station_get_connect_status()
  ******************************************************************
  */
@@ -624,12 +624,16 @@ Main_Task(os_event_t *event_p)
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
-		if (0 == event_p->par) {
-			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-					"closed", 6, 1, TRUE);
-		} else {
-			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-					"open", 4, 1, TRUE);
+		delay(2); // wait 2 ms to debounce input
+		if (digitalRead(PIN_DOOR) == event_p->par) {
+			// door level the same as in interrupt, otherwise we detected bouncing
+			if (0 == event_p->par) {
+				MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
+						"open", 4, 1, TRUE);
+			} else {
+				MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
+						"closed", 6, 1, TRUE);
+			}
 		}
 		break;
 	case SIG_UPGRADE:
