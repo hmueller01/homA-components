@@ -6,7 +6,7 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 19
+#define APP_VERSION 20
 
 // define DEBUG_ON to show debug output
 #define DEBUG_ON
@@ -42,7 +42,7 @@
 #define DOOR_PIN_TIMER (50)
 
 // door pin debounce counter (-5 .. 5) -> 500 ms read delay
-#define PIN_DOOR_MAX_CNT 5
+#define DOOR_PIN_CNT_MAX 5
 
 #define USE_OPTIMIZE_PRINTF
 

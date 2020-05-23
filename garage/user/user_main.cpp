@@ -176,35 +176,29 @@ CheckSntpStamp_Cb(void *arg)
 /**
  ******************************************************************
  * @brief  Door pin read timer callback.
+ *         Do keep this in RAM (no ICACHE_FLASH_ATTR), as it is
+ *         called very often.
  * @author Holger Mueller
  * @date   2020-05-23
  *
  * @param  arg - NULL, not used.
  ******************************************************************
  */
-LOCAL void ICACHE_FLASH_ATTR
+LOCAL void
 DoorPinTimer_Cb(void *arg)
 {
-	bool ret;
-
 	if (OFF == digitalRead(PIN_DOOR)) {
-		if (door_pin_cnt > -PIN_DOOR_MAX_CNT) {
+		if (door_pin_cnt > -DOOR_PIN_CNT_MAX) {
 			door_pin_cnt--;
-			if (door_pin_cnt == -PIN_DOOR_MAX_CNT) {
-				ret = system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, OFF);
-				if (!ret) {
-					ERROR("%s: system_os_post() failed." CRLF, __FUNCTION__);
-				}
+			if (door_pin_cnt == -DOOR_PIN_CNT_MAX) {
+				system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, OFF);
 			}
 		}
 	} else {
-		if (door_pin_cnt < PIN_DOOR_MAX_CNT) {
+		if (door_pin_cnt < DOOR_PIN_CNT_MAX) {
 			door_pin_cnt++;
-			if (door_pin_cnt == PIN_DOOR_MAX_CNT) {
-				ret = system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, ON);
-				if (!ret) {
-					ERROR("%s: system_os_post() failed." CRLF, __FUNCTION__);
-				}
+			if (door_pin_cnt == DOOR_PIN_CNT_MAX) {
+				system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, ON);
 			}
 		}
 	}
@@ -317,7 +311,6 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
-	// TODO system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/type", "switch", 6, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
 	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 1);
@@ -584,6 +577,8 @@ WpsLongPress_Cb(void *arg)
 LOCAL void ICACHE_FLASH_ATTR
 WpsPinChange_Cb(void)
 {
+	// Keep the Interrupt Service Routine (ISR) / callback short.
+	// Do not use “serial print” commands in an ISR. These can hang the system.
 	if (0 == digitalRead(PIN_WPS)) {
 		// key is pressed, wait 5s if key is still pressed
 		os_timer_disarm(&wps_timer);
@@ -595,25 +590,6 @@ WpsPinChange_Cb(void)
 		os_timer_disarm(&wps_timer);
 		INFO("%s: key release detected, disarming timer ..." CRLF, __FUNCTION__);
 	}
-}
-
-/**
- ******************************************************************
- * @brief  Door key's short press function, needed to be installed.
- *         Detects if garage door is open or closed.
- *         Do keep this in RAM (no ICACHE_FLASH_ATTR), as it is
- *         called very often.
- * @author Holger Mueller
- * @date   2018-03-15
- ******************************************************************
- */
-LOCAL void
-DoorPinChange_Cb(void)
-{
-	// Keep the Interrupt Service Routine (ISR) / callback short.
-	// Do not use “serial print” commands in an ISR. These can hang the system.
-	//INFO("%s: Pin is %d" CRLF, __FUNCTION__, digitalRead(DOOR_PIN));
-	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
 }
 
 /**
@@ -663,7 +639,6 @@ Main_Task(os_event_t *event_p)
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
-		// door level the same as in interrupt, otherwise we detected bouncing
 		if (OFF == event_p->par) {
 			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
 					"open", 4, 1, TRUE);
@@ -722,7 +697,6 @@ user_init(void)
 
 	// setup needed GPIO pins
 	attachInterrupt(PIN_WPS, WpsPinChange_Cb, CHANGE);
-	// TODO attachInterrupt(PIN_DOOR, DoorPinChange_Cb, CHANGE);
 	pinMode(PIN_DOOR, INPUT_PULLUP);
 	pinMode(PIN_CISTERN, OUTPUT);
 	digitalWrite(PIN_CISTERN, OFF);
