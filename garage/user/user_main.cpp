@@ -50,7 +50,6 @@ LOCAL bool send_start_time = FALSE;
 LOCAL uint16_t server_version;
 LOCAL uint16_t m_cistern_timeout_time = 0; // [min]
 LOCAL uint16_t m_cistern_timeout_cnt = 0; // [min]
-LOCAL sint8_t door_pin_cnt = 0; // debounce counter for door pin
 LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
 LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
@@ -187,7 +186,15 @@ CheckSntpStamp_Cb(void *arg)
 LOCAL void
 DoorPinTimer_Cb(void *arg)
 {
-	if (OFF == digitalRead(PIN_DOOR)) {
+	LOCAL sint8_t door_pin_cnt = 0; // debounce counter for door pin
+	LOCAL sint8_t cistern_sw_pin_cnt = 0; // debounce counter for cistern sw pin
+
+	// debounce garage door pin
+	if (digitalRead(PIN_DOOR) == OFF) {
+		// door pin is OFF, reset ON counts
+		if (door_pin_cnt > 0) {
+			door_pin_cnt = 0;
+		}
 		if (door_pin_cnt > -DOOR_PIN_CNT_MAX) {
 			door_pin_cnt--;
 			if (door_pin_cnt == -DOOR_PIN_CNT_MAX) {
@@ -195,12 +202,36 @@ DoorPinTimer_Cb(void *arg)
 			}
 		}
 	} else {
+		// door pin is ON, reset OFF counts
+		if (door_pin_cnt < 0) {
+			door_pin_cnt = 0;
+		}
 		if (door_pin_cnt < DOOR_PIN_CNT_MAX) {
 			door_pin_cnt++;
 			if (door_pin_cnt == DOOR_PIN_CNT_MAX) {
 				system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, ON);
 			}
 		}
+	}
+
+	// debounce cistern switch button pin
+	if (digitalRead(PIN_CISTERN_SW) == OFF) {
+		// cistern switch pin is OFF, reset ON counts
+		if (cistern_sw_pin_cnt > 0) {
+			cistern_sw_pin_cnt = 0;
+		}
+		if (cistern_sw_pin_cnt > -DOOR_PIN_CNT_MAX) {
+			cistern_sw_pin_cnt--;
+			if (cistern_sw_pin_cnt == -DOOR_PIN_CNT_MAX) {
+				system_os_post(MAIN_TASK_PRIO, SIG_CISTERN, !digitalRead(PIN_CISTERN));
+			}
+		}
+	} else {
+		// cistern switch pin is ON, reset OFF counts
+		if (cistern_sw_pin_cnt < 0) {
+			cistern_sw_pin_cnt = 0;
+		}
+		// no need to count positive, as ON has no action
 	}
 }
 
@@ -665,7 +696,7 @@ Main_Task(os_event_t *event_p)
  ******************************************************************
  * @brief  Main user init function.
  * @author Holger Mueller
- * @date   2018-03-15, 2018-05-11, 2019-10-13
+ * @date   2018-03-15, 2018-05-11, 2019-10-13, 2020-05-24
  ******************************************************************
  */
 void ICACHE_FLASH_ATTR
@@ -698,6 +729,7 @@ user_init(void)
 	// setup needed GPIO pins
 	attachInterrupt(PIN_WPS, WpsPinChange_Cb, CHANGE);
 	pinMode(PIN_DOOR, INPUT_PULLUP);
+	pinMode(PIN_CISTERN_SW, INPUT_PULLUP);
 	pinMode(PIN_CISTERN, OUTPUT);
 	digitalWrite(PIN_CISTERN, OFF);
 

@@ -6,7 +6,7 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 20
+#define APP_VERSION 21
 
 // define DEBUG_ON to show debug output
 #define DEBUG_ON
@@ -31,6 +31,7 @@
 #define PIN_WPS 14
 #define PIN_DOOR 12
 #define PIN_CISTERN 13
+#define PIN_CISTERN_SW 4
 
 // configuration of MCP23017 GPIO ports
 #define CISTERN_LVL_BTN 15
@@ -41,7 +42,7 @@
 // configuration of door pin read frequency (50 ms)
 #define DOOR_PIN_TIMER (50)
 
-// door pin debounce counter (-5 .. 5) -> 500 ms read delay
+// door pin debounce counter (OFF: 0 .. -5, ON: 0 .. 5) -> 250 ms read delay
 #define DOOR_PIN_CNT_MAX 5
 
 #define USE_OPTIMIZE_PRINTF
