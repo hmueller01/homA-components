@@ -39,11 +39,11 @@
 // configuration of cistern level read frequency (10 min.)
 #define CISTERN_LVL_TIMER (10 * 60 * 1000)
 
-// configuration of door pin read frequency (50 ms)
-#define DOOR_PIN_TIMER (50)
+// configuration of debounced pin read frequency (50 ms)
+#define DEBOUNCE_PIN_TIMER (50)
 
-// door pin debounce counter (OFF: 0 .. -5, ON: 0 .. 5) -> 250 ms read delay
-#define DOOR_PIN_CNT_MAX 5
+// pin debounce counter (OFF: 0 .. -5, ON: 0 .. 5) -> 250 ms read delay
+#define DEBOUNCE_PIN_CNT_MAX 5
 
 #define USE_OPTIMIZE_PRINTF
 

@@ -54,7 +54,7 @@ LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
 LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
 LOCAL os_timer_t m_cistern_timeout_timer; // timer to timeout cistern pump
-LOCAL os_timer_t door_pin_timer; // timer to read door pin
+LOCAL os_timer_t debounce_pin_timer; // timer to read door pin
 #define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
@@ -174,7 +174,7 @@ CheckSntpStamp_Cb(void *arg)
 
 /**
  ******************************************************************
- * @brief  Door pin read timer callback.
+ * @brief  Debounce pin read timer callback. (door, cistern button)
  *         Do keep this in RAM (no ICACHE_FLASH_ATTR), as it is
  *         called very often.
  * @author Holger Mueller
@@ -184,7 +184,7 @@ CheckSntpStamp_Cb(void *arg)
  ******************************************************************
  */
 LOCAL void
-DoorPinTimer_Cb(void *arg)
+DebouncePinTimer_Cb(void *arg)
 {
 	LOCAL sint8_t door_pin_cnt = 0; // debounce counter for door pin
 	LOCAL sint8_t cistern_sw_pin_cnt = 0; // debounce counter for cistern sw pin
@@ -195,9 +195,9 @@ DoorPinTimer_Cb(void *arg)
 		if (door_pin_cnt > 0) {
 			door_pin_cnt = 0;
 		}
-		if (door_pin_cnt > -DOOR_PIN_CNT_MAX) {
+		if (door_pin_cnt > -DEBOUNCE_PIN_CNT_MAX) {
 			door_pin_cnt--;
-			if (door_pin_cnt == -DOOR_PIN_CNT_MAX) {
+			if (door_pin_cnt == -DEBOUNCE_PIN_CNT_MAX) {
 				system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, OFF);
 			}
 		}
@@ -206,9 +206,9 @@ DoorPinTimer_Cb(void *arg)
 		if (door_pin_cnt < 0) {
 			door_pin_cnt = 0;
 		}
-		if (door_pin_cnt < DOOR_PIN_CNT_MAX) {
+		if (door_pin_cnt < DEBOUNCE_PIN_CNT_MAX) {
 			door_pin_cnt++;
-			if (door_pin_cnt == DOOR_PIN_CNT_MAX) {
+			if (door_pin_cnt == DEBOUNCE_PIN_CNT_MAX) {
 				system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, ON);
 			}
 		}
@@ -220,9 +220,9 @@ DoorPinTimer_Cb(void *arg)
 		if (cistern_sw_pin_cnt > 0) {
 			cistern_sw_pin_cnt = 0;
 		}
-		if (cistern_sw_pin_cnt > -DOOR_PIN_CNT_MAX) {
+		if (cistern_sw_pin_cnt > -DEBOUNCE_PIN_CNT_MAX) {
 			cistern_sw_pin_cnt--;
-			if (cistern_sw_pin_cnt == -DOOR_PIN_CNT_MAX) {
+			if (cistern_sw_pin_cnt == -DEBOUNCE_PIN_CNT_MAX) {
 				system_os_post(MAIN_TASK_PRIO, SIG_CISTERN, !digitalRead(PIN_CISTERN));
 			}
 		}
@@ -734,9 +734,9 @@ user_init(void)
 	digitalWrite(PIN_CISTERN, OFF);
 
 	// setup cyclic door pin reading
-	os_timer_disarm(&door_pin_timer);
-	os_timer_setfn(&door_pin_timer, (os_timer_func_t *)DoorPinTimer_Cb, NULL);
-	os_timer_arm(&door_pin_timer, DOOR_PIN_TIMER, TRUE);
+	os_timer_disarm(&debounce_pin_timer);
+	os_timer_setfn(&debounce_pin_timer, (os_timer_func_t *)DebouncePinTimer_Cb, NULL);
+	os_timer_arm(&debounce_pin_timer, DEBOUNCE_PIN_TIMER, TRUE);
 
 	// setup cyclic sending of cistern level
 	os_timer_disarm(&cistern_lvl_timer);
