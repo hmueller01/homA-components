@@ -54,7 +54,7 @@ LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
 LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
 LOCAL os_timer_t m_cistern_timeout_timer; // timer to timeout cistern pump
-LOCAL os_timer_t debounce_pin_timer; // timer to read door pin
+LOCAL os_timer_t debounce_pin_timer; // timer to read pins debounced
 #define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
@@ -733,7 +733,7 @@ user_init(void)
 	pinMode(PIN_CISTERN, OUTPUT);
 	digitalWrite(PIN_CISTERN, OFF);
 
-	// setup cyclic door pin reading
+	// setup cyclic decounced pin reading
 	os_timer_disarm(&debounce_pin_timer);
 	os_timer_setfn(&debounce_pin_timer, (os_timer_func_t *)DebouncePinTimer_Cb, NULL);
 	os_timer_arm(&debounce_pin_timer, DEBOUNCE_PIN_TIMER, TRUE);
