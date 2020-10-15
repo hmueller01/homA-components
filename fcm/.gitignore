@@ -3,3 +3,7 @@ fcm-example.py
 # secret files!
 fcm-options.json
 service-account.json
+
+# generated node files
+node_modules/
+package-lock.json

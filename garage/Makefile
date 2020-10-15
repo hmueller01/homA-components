@@ -39,7 +39,7 @@ ESPTOOL		?= $(XTENSA_TOOLS_ROOT)/esptool.py
 ESPPORT		?= /dev/tty.SLAB_USBtoUART
 
 # gen_appbin.py Espressif's generate bin script
-GEN_APPBIN	?= python $(SDK_BASE)/tools/gen_appbin.py
+GEN_APPBIN	?= python2 $(SDK_BASE)/tools/gen_appbin.py
 
 # Server and location on update server for new firmware
 UPDATE_SERVER	:= $(shell grep "^\#define OTA_HOST" include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
@@ -50,7 +50,7 @@ MQTT_PUB		:= mosquitto_pub
 MQTT_HOST		:= $(shell grep '^\#define MQTT_HOST' include/mqtt_config.h | sed 's/.*"\(.*\)".*/\1/')
 MQTT_USER		:= $(shell grep '^\#define MQTT_USER' include/user_secret.h | sed 's/.*"\(.*\)".*/\1/')
 MQTT_PASS		:= $(shell grep '^\#define MQTT_PASS' include/user_secret.h | sed 's/.*"\(.*\)".*/\1/')
- 
+
 # app version: 0 = non-OTA, 1 = OTA user1 (auto builds user2), 2 = OTA user2
 APP			?= 1
 # OTA boot version: old=boot_v1.1 or new=boot_v1.2+

@@ -10,7 +10,7 @@
  *
  * All configuration is done in "user_config.h".
  */
- 
+
 /*
 Programming Best Practices
 http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
@@ -54,6 +54,7 @@ LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
 LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
 LOCAL os_timer_t m_cistern_timeout_timer; // timer to timeout cistern pump
+LOCAL os_timer_t debounce_pin_timer; // timer to read door pin
 #define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
@@ -104,7 +105,7 @@ user_rf_cal_sector_set(void)
 {
 	enum flash_size_map size_map = system_get_flash_size_map();
 	uint32 rf_cal_sec = 0;
-	
+
 	INFO(CRLF);
 	switch (size_map) {
 	case FLASH_SIZE_4M_MAP_256_256:
@@ -168,6 +169,69 @@ CheckSntpStamp_Cb(void *arg)
 			"/devices/" HOMA_SYSTEM_ID "/controls/Start time",
 			time_str, os_strlen(time_str), 1, TRUE);
 		send_start_time = TRUE; // do not resend start time until we reboot
+	}
+}
+
+/**
+ ******************************************************************
+ * @brief  Debounce pin read timer callback. (door, cistern button)
+ *         Do keep this in RAM (no ICACHE_FLASH_ATTR), as it is
+ *         called very often.
+ * @author Holger Mueller
+ * @date   2020-05-23
+ *
+ * @param  arg - NULL, not used.
+ ******************************************************************
+ */
+LOCAL void
+DebouncePinTimer_Cb(void *arg)
+{
+	LOCAL sint8_t door_pin_cnt = 0; // debounce counter for door pin
+	LOCAL sint8_t cistern_sw_pin_cnt = 0; // debounce counter for cistern sw pin
+
+	// debounce garage door pin
+	if (digitalRead(PIN_DOOR) == OFF) {
+		// door pin is OFF, reset ON counts
+		if (door_pin_cnt > 0) {
+			door_pin_cnt = 0;
+		}
+		if (door_pin_cnt > -DEBOUNCE_PIN_CNT_MAX) {
+			door_pin_cnt--;
+			if (door_pin_cnt == -DEBOUNCE_PIN_CNT_MAX) {
+				system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, OFF);
+			}
+		}
+	} else {
+		// door pin is ON, reset OFF counts
+		if (door_pin_cnt < 0) {
+			door_pin_cnt = 0;
+		}
+		if (door_pin_cnt < DEBOUNCE_PIN_CNT_MAX) {
+			door_pin_cnt++;
+			if (door_pin_cnt == DEBOUNCE_PIN_CNT_MAX) {
+				system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, ON);
+			}
+		}
+	}
+
+	// debounce cistern switch button pin
+	if (digitalRead(PIN_CISTERN_SW) == OFF) {
+		// cistern switch pin is OFF, reset ON counts
+		if (cistern_sw_pin_cnt > 0) {
+			cistern_sw_pin_cnt = 0;
+		}
+		if (cistern_sw_pin_cnt > -DEBOUNCE_PIN_CNT_MAX) {
+			cistern_sw_pin_cnt--;
+			if (cistern_sw_pin_cnt == -DEBOUNCE_PIN_CNT_MAX) {
+				system_os_post(MAIN_TASK_PRIO, SIG_CISTERN, !digitalRead(PIN_CISTERN));
+			}
+		}
+	} else {
+		// cistern switch pin is ON, reset OFF counts
+		if (cistern_sw_pin_cnt < 0) {
+			cistern_sw_pin_cnt = 0;
+		}
+		// no need to count positive, as ON has no action
 	}
 }
 
@@ -252,7 +316,7 @@ CisternGetPercent(uint16_t cistern_lvl)
  ******************************************************************
  * @brief  MQTT callback broker connected.
  * @author Holger Mueller
- * @date   2018-03-15, 2018-05-26
+ * @date   2018-03-15, 2018-05-26, 2019-10-13
  * Subscribes to /sys topics, publishes HomA /devices/ structure.
  *
  * @param  args - MQTT_Client structure pointer.
@@ -274,11 +338,10 @@ MqttConnected_Cb(uint32_t *args)
 	//MQTT_Publish(*client, topic, data, data_length, qos, retain)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, TRUE);
-	
+
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/type", "text", 4, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/unit", "", 0, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
-	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/type", "switch", 6, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/meta/room", HOMA_HOME, os_strlen(HOMA_HOME), 1, TRUE);
 	MQTT_Subscribe(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern/on", 1);
@@ -295,7 +358,8 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "5", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "6", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "7", 1, 1, TRUE);
-	
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State/meta/order", "8", 1, 1, TRUE);
+
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
 		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, TRUE);
 	itoa(app_version, APP_VERSION);
@@ -304,6 +368,9 @@ MqttConnected_Cb(uint32_t *args)
 	rst_reason = (char *) rst_reason_text[system_get_rst_info()->reason];
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason",
 		rst_reason, os_strlen(rst_reason), 1, TRUE);
+	// set LWT message, that we are alive
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State",
+		"online", 6, 1, TRUE);
 
 	// do only resend start time if we reboot,
 	// do not if we got a Wifi reconnect ...
@@ -377,7 +444,7 @@ MqttData_Cb(uint32_t *args, const char *topic_raw, uint32_t topic_len, const cha
 		server_version = atoi(data);
 		INFO("Received server version %d" CRLF, server_version);
 		if (server_version <= APP_VERSION) {
-			INFO("%s: No upgrade. Server version=%d, local version=%d" CRLF, 
+			INFO("%s: No upgrade. Server version=%d, local version=%d" CRLF,
 				__FUNCTION__, server_version, APP_VERSION);
 			server_version = 0; // reset server version
 		} else {
@@ -493,7 +560,7 @@ WifiWpsHandleEvent_Cb(System_Event_t *evt_p)
  * @author Holger Mueller
  * @date   2017-06-06
  *
- * @param  status - WiFi status. See wifi.c and 
+ * @param  status - WiFi status. See wifi.c and
  *                  wifi_station_get_connect_status()
  ******************************************************************
  */
@@ -541,6 +608,8 @@ WpsLongPress_Cb(void *arg)
 LOCAL void ICACHE_FLASH_ATTR
 WpsPinChange_Cb(void)
 {
+	// Keep the Interrupt Service Routine (ISR) / callback short.
+	// Do not use “serial print” commands in an ISR. These can hang the system.
 	if (0 == digitalRead(PIN_WPS)) {
 		// key is pressed, wait 5s if key is still pressed
 		os_timer_disarm(&wps_timer);
@@ -552,25 +621,6 @@ WpsPinChange_Cb(void)
 		os_timer_disarm(&wps_timer);
 		INFO("%s: key release detected, disarming timer ..." CRLF, __FUNCTION__);
 	}
-}
-
-/**
- ******************************************************************
- * @brief  Door key's short press function, needed to be installed.
- *         Detects if garage door is open or closed.
- *         Do keep this in RAM (no ICACHE_FLASH_ATTR), as it is
- *         called very often.
- * @author Holger Mueller
- * @date   2018-03-15
- ******************************************************************
- */
-LOCAL void
-DoorPinChange_Cb(void)
-{
-	// Keep the Interrupt Service Routine (ISR) / callback short.
-	// Do not use “serial print” commands in an ISR. These can hang the system.
-	//INFO("%s: Pin is %d" CRLF, __FUNCTION__, digitalRead(DOOR_PIN));
-	system_os_post(MAIN_TASK_PRIO, SIG_DOOR_CHANGE, digitalRead(PIN_DOOR));
 }
 
 /**
@@ -620,12 +670,12 @@ Main_Task(os_event_t *event_p)
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
-		if (0 == event_p->par) {
-			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
-					"closed", 6, 1, TRUE);
-		} else {
+		if (OFF == event_p->par) {
 			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
 					"open", 4, 1, TRUE);
+		} else {
+			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
+					"closed", 6, 1, TRUE);
 		}
 		break;
 	case SIG_UPGRADE:
@@ -646,7 +696,7 @@ Main_Task(os_event_t *event_p)
  ******************************************************************
  * @brief  Main user init function.
  * @author Holger Mueller
- * @date   2018-03-15, 2018-05-11
+ * @date   2018-03-15, 2018-05-11, 2019-10-13, 2020-05-24
  ******************************************************************
  */
 void ICACHE_FLASH_ATTR
@@ -678,9 +728,15 @@ user_init(void)
 
 	// setup needed GPIO pins
 	attachInterrupt(PIN_WPS, WpsPinChange_Cb, CHANGE);
-	attachInterrupt(PIN_DOOR, DoorPinChange_Cb, CHANGE);
+	pinMode(PIN_DOOR, INPUT_PULLUP);
+	pinMode(PIN_CISTERN_SW, INPUT_PULLUP);
 	pinMode(PIN_CISTERN, OUTPUT);
 	digitalWrite(PIN_CISTERN, OFF);
+
+	// setup cyclic door pin reading
+	os_timer_disarm(&debounce_pin_timer);
+	os_timer_setfn(&debounce_pin_timer, (os_timer_func_t *)DebouncePinTimer_Cb, NULL);
+	os_timer_arm(&debounce_pin_timer, DEBOUNCE_PIN_TIMER, TRUE);
 
 	// setup cyclic sending of cistern level
 	os_timer_disarm(&cistern_lvl_timer);
@@ -692,7 +748,7 @@ user_init(void)
 	MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, MQTT_SECURITY);
 	//MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
 	MQTT_InitClient(&mqttClient, sysCfg.device_id, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, FALSE);
-	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, FALSE);
+	MQTT_InitLWT(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/State", "offline", 1, TRUE);
 	MQTT_OnConnected(&mqttClient, MqttConnected_Cb);
 	MQTT_OnDisconnected(&mqttClient, MqttDisconnected_Cb);
 	MQTT_OnPublished(&mqttClient, MqttPublished_Cb);
