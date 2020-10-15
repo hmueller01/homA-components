@@ -1,10 +1,11 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8
 # Setup room names for all componentes in my configuration.
 
 # Holger Mueller
 # 2017/10/16 initial revision
 # 2017/03/12 added gas-meter
+# 2020/10/15 made script Python3 compatible
 
 import paho.mqtt.client as mqtt
 import ssl
@@ -85,7 +86,7 @@ def main():
 		# avoid "CertificateError: hostname" error by monkey patching ssl
 		#ssl.match_hostname = lambda cert, hostname: True
 		#mqttc.tls_insecure_set(True) # Do not use this "True" in production!
-		mqttc.tls_set(mqtt_config.ca_certs, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1, ciphers=None)
+		mqttc.tls_set(mqtt_config.ca_certs, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
 	mqttc.username_pw_set(mqtt_config.user, password=mqtt_config.pwd)
 	mqttc.connect(mqtt_config.host, port=mqtt_config.port)
 	mqttc.loop_start()
@@ -99,5 +100,5 @@ def main():
 
 if __name__ == "__main__":
 	main()
-	execfile("min_max_saver/setup.py")
-	execfile("rcplugs-esp/setup.py")
+	exec(open("min_max_saver/setup.py").read())
+	exec(open("rcplugs-esp/setup.py").read())

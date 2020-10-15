@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8
 # Setup rcPlugs is a MQTT RC-Switch bridge used by HomA framework.
 # Creates the following retained topics:
@@ -14,6 +14,7 @@
 # 2017/10/18 made control name (before fix "Power") configurable
 # 2017/12/17 taken from rcPlugs and adopted for rcSwitch (ESP8266 bridge)
 # 2017/12/24 added command line switch to remove persistant messages
+# 2020/10/15 checked Python3 compatibility
 
 import sys
 import getopt

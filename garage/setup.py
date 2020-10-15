@@ -1,10 +1,11 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8
 # Setup garage is a MQTT node used by HomA framework.
 
 # Holger Mueller
 # 2018/05/22 initial revision
 # 2018/09/09 setting cistern_time
+# 2020/10/15 checked Python3 compatibility
 
 import sys
 import getopt

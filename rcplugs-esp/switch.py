@@ -1,9 +1,10 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8
 # Switch rcPlugs on/off
 
 # Holger Mueller
 # 2018/12/02 initial revision
+# 2020/10/15 checked Python3 compatibility
 
 import sys
 import getopt
@@ -64,8 +65,9 @@ def on_publish(client, userdata, mid):
 
 def usage():
 	print("Switch all rcPlugs on/off.")
-	print("%s [-h] [--help] [-d] [-r]" % sys.argv[0])
+	print("%s [-h] [--help] [-d] [--on] [--off]" % sys.argv[0])
 	print("-h, --help        Shows this help")
+	print("-d                Enable debug output")
 	print("--on              Switch rcPlugs on")
 	print("--off             Switch rcPlugs off")
 	return

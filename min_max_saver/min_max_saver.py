@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8
 # min_max_saver is a universal min/max saver used by HomA framework.
 # Listens to the following topics:
@@ -11,13 +11,14 @@
 # /devices/<minSystemId>/controls/<minControlId> min/meta/unit, payload: unit
 # /devices/<minSystemId>/controls/<minControlId> max, payload: max value
 # /devices/<minSystemId>/controls/<minControlId> max/meta/unit, payload: unit
-# 
+#
 # Holger Mueller
 # 2017/10/24 initial revision
 # 2017/10/28 setting/coping unit of min/max value from controlId
 # 2018/03/14 Changed constants to caps, changes order of functions for easier reading
 # 2019/02/15 Fixed a bug with utf-8 payload messages and Python string functions,
 #            fixed bug that messages are not resubscribed after a broker restart (reboot)
+# 2020/10/15 made script Python3 compatible
 
 import sys
 import time
@@ -33,12 +34,14 @@ debug = False
 systemId = setup.systemId # "123456-min-max-saver"
 
 # use utf8 encoding in all string related functions (e.g. str())
-reload(sys)
-sys.setdefaultencoding('utf8')
+# only Python2 relevant, since the default on Python3 is UTF-8 already
+if sys.version[0] == '2':
+	reload(sys)
+	sys.setdefaultencoding('utf8')
 
 saver_arr = [] # buffer of registered saver, contents:
-# {'saver': min/max, 'system': <systemId>, 'control': <controlId>, 
-#  'time': reset interval in seconds, 'nextReset': next reset time in seconds, 
+# {'saver': min/max, 'system': <systemId>, 'control': <controlId>,
+#  'time': reset interval in seconds, 'nextReset': next reset time in seconds,
 #  'value': min/max value}
 
 def build_topic(systemId, t1 = None, t2 = None, t3 = None):
@@ -81,19 +84,19 @@ def addSaver(client, saver, system, control, timeStr):
 		if debug: print("addSaver(): %s, system: %s, control: %s, time %s added." % (saver, system, control, timeValue))
 		nextResetTime = getNextResetTime(timeValue)
 		saver_arr.append({'saver': saver, 'system': system, 'control': control, 'time': timeValue, 'nextReset': nextResetTime, 'value': 'SNA'})
-		if debug: print saver_arr
+		if debug: print(saver_arr)
 	else:
 		if debug: print("addSaver(): %s, system: %s, control: %s, time %s updated." % (saver, system, control, timeValue))
 		saver_dict['time'] = timeValue
-		if debug: print saver_arr
+		if debug: print(saver_arr)
 	# subscribe topic "/devices/<system>/controls/<control>"
 	# e.g. "/devices/123456-energy/controls/Current Power"
 	client.subscribe(build_topic(system, "controls", control))
 	client.subscribe(build_topic(system, "controls", control, "meta/unit"))
 	return
- 
+
 def removeSaver(client, saver, system, control):
-	# Topic and array cleanup:  
+	# Topic and array cleanup:
 	# unsubscribe("/devices/<system>/controls/<control>")
 	# publish("/devices/<system>/controls/<control> <saver>", "")
 	saver_dict = getSaver(saver, system, control)
@@ -240,7 +243,7 @@ while True:
 	try:
 		time.sleep(1000)
 	except (KeyboardInterrupt, SystemExit):
-		print '\nKeyboardInterrupt found! Stopping program.'
+		print('\nKeyboardInterrupt found! Stopping program.')
 		break
 
 # wait until all queued topics are published

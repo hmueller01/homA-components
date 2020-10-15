@@ -1,8 +1,9 @@
-#!/usr/bin/env python2
-# Reads gas meter pules from Raspberry pin and sends it to a 
+#!/usr/bin/env python
+# Reads gas meter pules from Raspberry pin and sends it to a
 # MQTT broker used by HomA framework.
 # Holger Mueller
 # 2018/03/12
+# 2020/10/15 made script Python3 compatible
 
 import sys
 import os.path
@@ -139,11 +140,11 @@ while True:
 			if DEBUG: print("Rising edge detected. gas_counter = "+ str(gas_counter))
 			time.sleep(1) # debounce timer [s]
 	except (KeyboardInterrupt, SystemExit):
-		print '\nKeyboardInterrupt. Stopping program.'
+		print('\nKeyboardInterrupt. Stopping program.')
 		GPIO.cleanup() # clean up GPIO on CTRL+C exit
 		break
 
 # wait until all queued topics are published
-print 'Flushing MQTT queue ...'
+print('Flushing MQTT queue ...')
 mqttc.loop_stop()
 mqttc.disconnect()
