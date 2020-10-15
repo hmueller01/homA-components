@@ -1,9 +1,10 @@
-#!/usr/bin/env python2
-# Reads SML data created by sml_server from stdin and sends it to a 
+#!/usr/bin/env python
+# Reads SML data created by sml_server from stdin and sends it to a
 # MQTT broker used by HomA framework.
 # Holger Mueller
 # 2017/03/02, 2017/03/09, 2017/04/04
 # 2017/04/06 added meta/unit topic and removed unit from payload of actual value
+# 2020/10/15 made script Python3 compatible
 
 import sys
 import os.path
@@ -39,7 +40,7 @@ def get_topic(t1 = None, t2 = None, t3 = None):
 def scan_line(line):
 	"Scan input line and if found publish MQTT topic/value. Returns True if success, otherwise False."
 	for obis_dict in obis_arr:
-		if line.find(obis_dict['obis']) <> -1:
+		if line.find(obis_dict['obis']) != -1:
 			# find value between "#"
 			pos_start = line.find("#") + 1
 			pos_end = line.find("#", pos_start)
@@ -70,8 +71,11 @@ def homa_init():
 		mqttc.publish(get_topic("controls", obis_dict['topic'], "meta/order"), order, retain=True)
 		order += 1
 	# create init file
-	file = open(INIT_FILE, 'w')
-	file.close()
+	try:
+		file = open(INIT_FILE, 'w')
+		file.close()
+	except (FileNotFoundError):
+		print("ERROR: File "+INIT_FILE+" not writable.")
 	return
 
 # The callback for when the client receives a CONNACK response from the broker.
@@ -114,14 +118,17 @@ print("Reading sml obis data from stdin forever. Press Ctrl-C to break.")
 while True:
 	try:
 #		line = sys.stdin.readline()
-		line = raw_input()
+		if sys.version_info >= (3,):
+			line = input() # Python3 does not support raw_input()
+		else:
+			line = raw_input() # not supported by Python3, and input() does not work correctly on Python2
 		if DEBUG: print(line)
 		scan_line(line)
 	except (KeyboardInterrupt, SystemExit, EOFError):
-		print '\nKeyboardInterrupt or EOF found! Stopping program.'
+		print('\nKeyboardInterrupt or EOF found! Stopping program.')
 		break
 
 # wait until all queued topics are published
-print 'Flushing MQTT queue ...'
+print('Flushing MQTT queue ...')
 mqttc.loop_stop()
 mqttc.disconnect()
