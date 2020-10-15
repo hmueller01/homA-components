@@ -127,7 +127,7 @@ def main():
 	mqttc.on_publish = on_publish
 	if mqtt_config.ca_certs != "":
 		#mqttc.tls_insecure_set(True) # Do not use this "True" in production!
-		mqttc.tls_set(mqtt_config.ca_certs, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1, ciphers=None)
+		mqttc.tls_set(mqtt_config.ca_certs, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
 	mqttc.username_pw_set(mqtt_config.user, password=mqtt_config.pwd)
 	mqttc.connect(mqtt_config.host, port=mqtt_config.port)
 	mqttc.loop_start()
