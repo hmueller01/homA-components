@@ -1,22 +1,9 @@
 /**
  * @file  i2c_master.cpp
- * @brief I2C TWI class for ESP8266.
+ * @brief I2C TWI (Two Wire Interface) class for ESP8266.
  *
+ * MIT License
  * Copyright (c) 2018 Holger Müller
- ***********************************************************************
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see <http://www.gnu.org/licenses/>.
- ***********************************************************************
  */
 
 // C++ wrapper
@@ -221,4 +208,3 @@ ICACHE_FLASH_ATTR
 I2c_master::I2c_master()
 {
 }
-
