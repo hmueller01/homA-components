@@ -130,10 +130,6 @@ typedef struct  {
 #define MQTT_EVENT_TYPE_EXITED 			7
 #define MQTT_EVENT_TYPE_PUBLISH_CONTINUATION 8
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void ICACHE_FLASH_ATTR MQTT_InitConnection(MQTT_Client *mqttClient, const char* host, uint32_t port, uint8_t security);
 void ICACHE_FLASH_ATTR MQTT_InitClient(MQTT_Client *mqttClient, const char* client_id, const char* client_user, const char* client_pass, uint32_t keepAliveTime, uint8_t cleanSession);
 void ICACHE_FLASH_ATTR MQTT_DeleteClient(MQTT_Client *mqttClient);
@@ -149,9 +145,5 @@ BOOL ICACHE_FLASH_ATTR MQTT_Ping(MQTT_Client *client);
 void ICACHE_FLASH_ATTR MQTT_Connect(MQTT_Client *mqttClient);
 void ICACHE_FLASH_ATTR MQTT_Disconnect(MQTT_Client *mqttClient);
 BOOL ICACHE_FLASH_ATTR MQTT_Publish(MQTT_Client *client, const char* topic, const char* data, int data_length, int qos, int retain);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* USER_AT_MQTT_H_ */

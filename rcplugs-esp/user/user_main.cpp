@@ -10,7 +10,7 @@
  *
  * All configuration is done in "user_config.h".
  */
- 
+
 /*
 Programming Best Practices
 http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
@@ -30,7 +30,6 @@ extern "C" {
 #include <string.h>
 #include <time.h>
 #include <sntp.h>
-}
 
 #include "user_config.h"
 #include "user_common.h"
@@ -42,8 +41,11 @@ extern "C" {
 #include "wifi.h"
 #include "dst.h"
 #include "wiringESP.h"
+}
+
 #include "RCSwitch.h"
 #include "plugs.h"
+
 
 // global variables
 LOCAL RCSwitch mySwitch;
@@ -102,7 +104,7 @@ user_rf_cal_sector_set(void)
 {
 	enum flash_size_map size_map = system_get_flash_size_map();
 	uint32 rf_cal_sec = 0;
-	
+
 	INFO(CRLF);
 	switch (size_map) {
 	case FLASH_SIZE_4M_MAP_256_256:
@@ -185,10 +187,10 @@ MqttConnected_Cb(uint32_t *args)
 	char app_version[20];
 	char *rst_reason;
 	MQTT_Client *client = (MQTT_Client *) args;
-	
+
 	INFO("MQTT: Connected" CRLF);
 	mqtt_connected = true;
-	
+
 	// subscribe topic "/sys/<systemId>/<systemCode>-<unitCode>/<control>"
 	// e.g. "/sys/123456-rcplugs/11011-01000/Power", payload: typeA
 	MQTT_Subscribe(client, "/sys/" HOMA_SYSTEM_ID "/+/+", 2);
@@ -416,7 +418,7 @@ WifiWpsHandleEvent_Cb(System_Event_t *evt_p)
  * @author Holger Mueller
  * @date   2017-06-06, 2017-12-16
  *
- * @param  status - WiFi status. See wifi.c and 
+ * @param  status - WiFi status. See wifi.c and
  *                  wifi_station_get_connect_status()
  ******************************************************************
  */

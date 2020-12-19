@@ -17,9 +17,9 @@ typedef struct _plugs {
 } plugs_t;
 
 typedef enum {
-    typeA = 1,
-    typeB,
-    typeUnkown = -1
+	typeA = 1,
+	typeB,
+	typeUnkown = -1
 } plug_type_t;
 
 plugs_t * getPlug(const char *systemCode, const char *unitCode);

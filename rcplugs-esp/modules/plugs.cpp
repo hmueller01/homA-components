@@ -11,11 +11,12 @@ extern "C" {
 #include <c_types.h>
 #include <osapi.h>
 #include <mem.h>
-}
 
 #include "user_config.h"
 #include "mqtt/mqtt.h"
 #include "mqtt/debug.h"
+}
+
 #include "RCSwitch.h"
 #include "plugs.h"
 
