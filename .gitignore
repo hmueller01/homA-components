@@ -20,6 +20,9 @@ user_secret.h
 build/
 firmware/
 
+# MQTT ca cert file
+esp_ca_cert.bin
+
 # Prerequisites
 *.d
 
