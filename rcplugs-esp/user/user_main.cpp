@@ -1,6 +1,7 @@
 /**
  * @file
  * @brief rcplugs main application
+ * @author Holger Mueller
  *
  * This is a HomA/MQTT rc-switch unit.
  *
@@ -32,12 +33,10 @@ extern "C" {
 #include <sntp.h>
 
 #include "user_config.h"
-#include "user_common.h"
 #include "ota_upgrade.h"
 #include "mqtt/mqtt.h"
-#include "mqtt/utils.h"
-#include "mqtt/debug.h"
-#include "config.h"
+#include "user_cfg.h"
+#include "common.h"
 #include "wifi.h"
 #include "dst.h"
 #include "wiringESP.h"
@@ -74,73 +73,10 @@ const char *rst_reason_text[] = {
 	"external system reset"       // REASON_EXT_SYS_RST = 6
 };
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-	uint32 user_rf_cal_sector_set(void);
 	void user_init(void);
-#ifdef __cplusplus
 }
-#endif
 
-
-/**
- ******************************************************************
- * @brief  SDK just reversed 4 sectors, used for rf init data and paramters.
- * @author Holger Mueller
- * @date   2017-06-08
- * We add this function to force users to set rf cal sector, since
- * we don't know which sector is free in user's application.
- * Sector map for last several sectors: ABCCC
- * A : rf cal
- * B : rf init data
- * C : sdk parameters
- *
- * @return rf cal sector
- ******************************************************************
- */
-uint32 ICACHE_FLASH_ATTR
-user_rf_cal_sector_set(void)
-{
-	enum flash_size_map size_map = system_get_flash_size_map();
-	uint32 rf_cal_sec = 0;
-
-	INFO(CRLF);
-	switch (size_map) {
-	case FLASH_SIZE_4M_MAP_256_256:
-		INFO("%s: FLASH_SIZE_4M_MAP_256_256" CRLF, __FUNCTION__);
-		rf_cal_sec = 128 - 5;
-		break;
-	case FLASH_SIZE_8M_MAP_512_512:
-		INFO("%s: FLASH_SIZE_8M_MAP_512_512" CRLF, __FUNCTION__);
-		rf_cal_sec = 256 - 5;
-		break;
-	case FLASH_SIZE_16M_MAP_512_512:
-	case FLASH_SIZE_16M_MAP_1024_1024:
-		INFO("%s: FLASH_SIZE_16M_MAP_512_512" CRLF, __FUNCTION__);
-		rf_cal_sec = 512 - 5;
-		break;
-	case FLASH_SIZE_32M_MAP_512_512:
-	case FLASH_SIZE_32M_MAP_1024_1024:
-		INFO("%s: FLASH_SIZE_32M_MAP_512_512" CRLF, __FUNCTION__);
-		rf_cal_sec = 1024 - 5;
-		break;
-	case FLASH_SIZE_64M_MAP_1024_1024:
-		INFO("%s: FLASH_SIZE_64M_MAP_1024_1024" CRLF, __FUNCTION__);
-		rf_cal_sec = 2048 - 5;
-		break;
-	case FLASH_SIZE_128M_MAP_1024_1024:
-		INFO("%s: FLASH_SIZE_128M_MAP_1024_1024" CRLF, __FUNCTION__);
-		rf_cal_sec = 4096 - 5;
-		break;
-	default:
-		INFO("%s: default 0?!" CRLF, __FUNCTION__);
-		rf_cal_sec = 0;
-		break;
-	}
-
-	return rf_cal_sec;
-}
 
 /**
  ******************************************************************
