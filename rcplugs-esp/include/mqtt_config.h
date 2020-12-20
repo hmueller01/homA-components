@@ -15,7 +15,7 @@
 #define TWO_WAY_ANTHENTICATION		3	// 3: enable SSL/TLS, ESP8266 would verify the SSL server certificate and SSL server would verify ESP8266 certificate
 
 // MQTT boker host settings
-#define MQTT_SECURITY		NO_TLS		// security of the connection
+#define MQTT_SECURITY		ONE_WAY_ANTHENTICATION		// security of the connection
 #define MQTT_HOST			"mqtt.euhm"	// IP or domain name
 #if MQTT_SECURITY == NO_TLS
 #define MQTT_PORT			1883
