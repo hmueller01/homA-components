@@ -16,9 +16,8 @@
 #else
 #define INFO( format, ... )
 #endif
-/*
-#ifndef INFO
-#define INFO os_printf
-#endif
-*/
+// #ifndef INFO
+// #define INFO os_printf
+// #endif
+
 #endif /* USER_DEBUG_H_ */
