@@ -13,8 +13,8 @@ extern "C" {
 #include <mem.h>
 
 #include "user_config.h"
+#include "common.h"
 #include "mqtt/mqtt.h"
-#include "mqtt/debug.h"
 }
 
 #include "RCSwitch.h"
