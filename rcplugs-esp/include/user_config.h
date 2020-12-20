@@ -1,14 +1,23 @@
+/**
+ * @file
+ * @brief Configure IoT device here
+ * @author Holger Mueller
+ */
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
 #define APP_VERSION 28
 
-#define WPS						// enable WPS
+// define DEBUG_ON to show debug output
+#define DEBUG_ON
+// define if you want MQTT debug info messages
+//#define MQTT_DEBUG_ON
 
-// MQTT settings see mqtt_config.h
-#include "mqtt_config.h"
+// define to enable WPS
+#define WPS
 
-#define OTA_HOST "update.euhm"	// IP or domain name
+// configure FOTA IP or domain name, port and path on server
+#define OTA_HOST "update.euhm"
 #define OTA_PORT 80
 #define OTA_PATH "/esp8266fw/rcplugs/"
 
@@ -22,10 +31,14 @@
 #define PIN_WPS			13
 
 #define USE_OPTIMIZE_PRINTF
-#ifndef ERROR
-#define ERROR(format, ...) os_printf(format, ## __VA_ARGS__)
-#endif
-#define CRLF "\r\n"
 
-#endif
+// Missing ESP8266 SDK function prototypes and defines.
+#include "ets_missing.h"
 
+// MQTT settings see mqtt_config.h
+#include "mqtt_config.h"
+
+// Secret MQTT and WiFi settings see user_secret.h
+#include "user_secret.h"
+
+#endif /* __USER_CONFIG_H__ */
