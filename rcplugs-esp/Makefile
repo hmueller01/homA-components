@@ -31,7 +31,7 @@ COMPILE		= gcc
 XTENSA_TOOLS_ROOT ?= /opt/Espressif/xtensa-lx106-elf/bin
 
 # base directory of the ESP8266 SDK package, absolute
-SDK_BASE	?= /opt/Espressif/ESP8266_NONOS_SDK
+SDK_BASE	?= /opt/Espressif/ESP8266_NONOS_SDK-3.0.4
 
 # esptool.py path and port
 ESPTOOL		?= $(XTENSA_TOOLS_ROOT)/esptool.py
