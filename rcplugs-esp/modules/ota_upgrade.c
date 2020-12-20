@@ -1,7 +1,6 @@
 /**
  * @file
  * @brief User OTA upgrade functions.
- * $Id$
  * Thanks to Martin
  * https://harizanov.com/2015/06/firmware-over-the-air-fota-for-esp8266-soc/
  */
@@ -24,7 +23,7 @@ LOCAL struct espconn gethostname_conn;
  ******************************************************************
  * @brief  System callback after system_upgrade_start() finished.
  * @author Holger Mueller
- * @date   2017-06-03, 2017-10-30
+ * @date   2017-06-03, 2017-10-30, 2018-03-24
  *
  * @param  arg - Pointer to upgrade_server_info structure.
  ******************************************************************
@@ -34,10 +33,10 @@ ota_finished_callback(void *arg)
 {
 	struct upgrade_server_info *update = (struct upgrade_server_info*) arg;
 	if (update->upgrade_flag == true) {
-		os_printf("[OTA]success; rebooting!" CRLF);
+		INFO("[OTA]success; rebooting!" CRLF);
 		system_upgrade_reboot();
 	} else {
-		os_printf("[OTA]failed!" CRLF);
+		ERROR("[OTA]failed!" CRLF);
 		system_restart();
 	}
 
@@ -72,12 +71,12 @@ OtaHandleUpgrade(ip_addr_t *server_ip, uint16_t port, const char *path)
 		file = "user1.4096.new.4.bin";
 		break;
 	default:
-		os_printf("[OTA]Invalid userbin number! Exit." CRLF);
+		ERROR("[OTA]Invalid userbin number! Exit." CRLF);
 		return false;
 	}
 
 	if (server_ip->addr == 0) {
-		os_printf("[OTA]Invalid server ip! Exit." CRLF);
+		ERROR("[OTA]Invalid server ip! Exit." CRLF);
 		return false;
 	}
 
@@ -87,7 +86,7 @@ OtaHandleUpgrade(ip_addr_t *server_ip, uint16_t port, const char *path)
 	os_memcpy(update->ip, server_ip, 4);
 	update->port = port;
 
-	os_printf("[OTA]Server URL http://" IPSTR ":%d%s%s" CRLF,
+	DEBUG("[OTA]Server URL http://" IPSTR ":%d%s%s" CRLF,
 		IP2STR(update->ip), update->port, path, file);
 
 	update->check_cb = ota_finished_callback;
@@ -101,9 +100,9 @@ OtaHandleUpgrade(ip_addr_t *server_ip, uint16_t port, const char *path)
 		   path, file, IP2STR(update->ip), update->port);
 
 	if (system_upgrade_start(update)) {
-		os_printf("[OTA]Upgrading..." CRLF);
+		DEBUG("[OTA]Upgrading..." CRLF);
 	} else {
-		os_printf("[OTA]Could not start upgrade." CRLF);
+		ERROR("[OTA]Could not start upgrade." CRLF);
 
 		os_free(update->pespconn);
 		os_free(update->url);
@@ -133,7 +132,7 @@ OtaUpgradeDnsFound_Cb(const char *name, ip_addr_t *ipaddr, void *arg)
 	//struct espconn *pespconn = (struct espconn *)arg;
 
 	if (ipaddr == NULL) {
-		INFO("%s: ipaddr not found" CRLF, __FUNCTION__);
+		ERROR("%s: ipaddr not found" CRLF, __FUNCTION__);
 		// TODO: init DNS rerequest here!
 		/*
         if (++device_recon_count == 5) {
@@ -144,7 +143,7 @@ OtaUpgradeDnsFound_Cb(const char *name, ip_addr_t *ipaddr, void *arg)
 		return;
     }
 
-	INFO("%s: found ip " IPSTR CRLF, __FUNCTION__, IP2STR(ipaddr));
+	DEBUG("%s: found ip " IPSTR CRLF, __FUNCTION__, IP2STR(ipaddr));
 	OtaHandleUpgrade(ipaddr, OTA_PORT, OTA_PATH);
 }
 
@@ -165,17 +164,17 @@ OtaUpgrade(uint16_t server_version)
 	bool ret = false;
 
 	if (server_version <= APP_VERSION) {
-		INFO("%s: No upgrade. Server version=%d, local version=%d" CRLF,
+		DEBUG("%s: No upgrade. Server version=%d, local version=%d" CRLF,
 			__FUNCTION__, server_version, APP_VERSION);
 		return false;
 	}
-	INFO("%s: Upgrade available version=%d" CRLF, __FUNCTION__, server_version);
+	DEBUG("%s: Upgrade available version=%d" CRLF, __FUNCTION__, server_version);
 
 	if (UTILS_StrToIP(OTA_HOST, &update_server_ip)) {
-		INFO("%s: Update server ip " IPSTR CRLF, __FUNCTION__, IP2STR(&update_server_ip));
+		DEBUG("%s: Update server ip " IPSTR CRLF, __FUNCTION__, IP2STR(&update_server_ip));
 		ret = OtaHandleUpgrade(&update_server_ip, OTA_PORT, OTA_PATH);
 	} else {
-		INFO("%s: Update server hostname %s. Waiting for DNS query ..." CRLF, __FUNCTION__, OTA_HOST);
+		DEBUG("%s: Update server hostname %s. Waiting for DNS query ..." CRLF, __FUNCTION__, OTA_HOST);
 		update_server_ip.addr = 0;
 		// The third parameter can be used to store the IP address which got by DNS, so that if users call espconn_gethostbyname again, it won't run DNS again, but just use the IP address it already got.
 		espconn_gethostbyname(&gethostname_conn, OTA_HOST, &update_server_ip, OtaUpgradeDnsFound_Cb);
