@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Configure Secret definitions, which shall not go to version control!
+ * @brief Configure Secret definitions, which shall NOT go to version control!
  *        Copy this file to user_secret.h before editing!
  */
 #ifndef __USER_SECRET_H__

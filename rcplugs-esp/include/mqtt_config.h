@@ -1,7 +1,8 @@
 /**
  * @file
- * @brief Configure MQTT part of IoT device here
+ * @brief MQTT configuration
  * @author Holger Mueller
+ * Secret definitions (passwords, etc.) belong in user_secret.h!
  */
 #ifndef __MQTT_CONFIG_H__
 #define __MQTT_CONFIG_H__
@@ -20,7 +21,6 @@
 #if MQTT_SECURITY == NO_TLS
 #define MQTT_PORT			1883
 #else
-// TODO: not yet tested ...
 #define MQTT_PORT			8883
 #define MQTT_SSL_ENABLE
 #define CA_CERT_FLASH_ADDRESS 0x77		// CA certificate address in flash to read, 0x77 means address 0x77000
