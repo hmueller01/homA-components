@@ -1,13 +1,12 @@
+/**
+ * @file
+ * @brief Configure MQTT part of IoT device here
+ * @author Holger Mueller
+ */
 #ifndef __MQTT_CONFIG_H__
 #define __MQTT_CONFIG_H__
 
 #include <c_types.h>
-#include "user_secret.h"
-
-#define MQTT_DEBUG_ON			// define if you want debug info messages
-
-#define CFG_HOLDER	0x00FF55A1	// Change this value to load default configurations
-#define CFG_LOCATION	0x79	// Please don't change or if you know what you doing
 
 // define the possible MQTT SSL certificate options
 #define NO_TLS						0	// 0: disable SSL/TLS, there must be no certificate verify between MQTT server and ESP8266
@@ -35,30 +34,7 @@
 
 #define MQTT_CLIENT_ID		"ESP-%08X"
 
-// Secret definitions, which shall not go to version control!
-// see user_secret.h
-//#define MQTT_USER			""
-//#define MQTT_PASS			""
-
-// Station settings, if WPS is not used.
-// Secret definitions, which shall not go to version control!
-// see user_secret.h
-//#define STA_SSID			""
-//#define STA_PASS			""
-
 //#define PROTOCOL_NAMEv31	// MQTT version 3.1 compatible with Mosquitto v0.15
 #define PROTOCOL_NAMEv311	// MQTT version 3.11 compatible with https://eclipse.org/paho/clients/testing/
-
-
-// fix bug in c_types.h include, not defining BOOL, TRUE, FALSE for c++
-#ifndef BOOL
-#	define BOOL bool
-#endif
-#ifndef TRUE
-#	define TRUE true
-#endif
-#ifndef FALSE
-#	define FALSE false
-#endif
 
 #endif // __MQTT_CONFIG_H__
