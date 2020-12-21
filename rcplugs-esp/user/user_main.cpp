@@ -55,6 +55,7 @@ LOCAL bool send_start_time = false;
 LOCAL os_timer_t speed_timer;
 LOCAL uint16_t server_version;
 LOCAL os_timer_t sntp_timer; // time for NTP service
+LOCAL os_timer_t wps_timer; // timeout for WPS key
 #define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
@@ -377,10 +378,12 @@ WifiConnect_Cb(uint8_t status)
  *         Starts WPS push button function.
  * @author Holger Mueller
  * @date   2017-06-07
+ *
+ * @param  arg - NULL, not used.
  ******************************************************************
  */
 LOCAL void ICACHE_FLASH_ATTR
-WpsKeyPress_Cb(void)
+WpsLongPress_Cb(void *arg)
 {
 #ifdef WPS
 	INFO("%s: starting WPS push button ..." CRLF, __FUNCTION__);
@@ -394,7 +397,32 @@ WpsKeyPress_Cb(void)
 
 /**
  ******************************************************************
- * @brief  Main speed task for publishing data.
+ * @brief  WPS key's key change call back. Starts/stops timer to
+ *         detect long (3s) press.
+ * @author Holger Mueller
+ * @date   2018-03-15
+ ******************************************************************
+ */
+LOCAL void ICACHE_FLASH_ATTR
+WpsPinChange_Cb(void)
+{
+	if (0 == digitalRead(PIN_WPS)) {
+		// key is pressed, wait 5s if key is still pressed
+		os_timer_disarm(&wps_timer);
+		os_timer_setfn(&wps_timer, (os_timer_func_t *)WpsLongPress_Cb, NULL);
+		os_timer_arm(&wps_timer, 3000, FALSE);
+		INFO("%s: key press detected, arming timer ..." CRLF, __FUNCTION__);
+	} else {
+		// key released, stop timer
+		os_timer_disarm(&wps_timer);
+		INFO("%s: key release detected, disarming timer ..." CRLF, __FUNCTION__);
+	}
+}
+
+
+/**
+ ******************************************************************
+ * @brief  Main task for doing long term executions.
  * @author Holger Mueller
  * @date   2017-12-14, ..., 2020-12-20
  *
@@ -461,8 +489,7 @@ user_init(void)
 	wifi_set_opmode(STATION_MODE);
 	wifi_station_set_hostname(sysCfg.device_id);
 	// setup WPS button pin
-	pinMode(PIN_WPS, INPUT_PULLUP);
-	attachInterrupt(PIN_WPS, WpsKeyPress_Cb, FALLING);
+	attachInterrupt(PIN_WPS, WpsPinChange_Cb, CHANGE);
 #else // WPS
 	WIFI_Connect(sysCfg.sta_ssid, sysCfg.sta_pwd, WifiConnect_Cb);
 	wifi_station_set_hostname(sysCfg.device_id);
