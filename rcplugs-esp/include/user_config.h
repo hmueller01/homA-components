@@ -6,7 +6,9 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#define APP_VERSION 30
+#include "mqtt/mqtt.h"
+
+#define APP_VERSION 37
 
 // define DEBUG_ON to show debug output
 #define DEBUG_ON
@@ -26,6 +28,17 @@
 //#define HOMA_DEVICE "rcplugs"
 //#define HOMA_ROOM "rcPlugs"
 
+// MQTT boker host settings
+#define MQTT_HOST			"mqtt.euhm" // IP or domain name
+#define MQTT_CLIENT_ID		"ESP-%08X"
+#define MQTT_SECURITY		SEC_SSL_ONE_WAY_AUTH // security of the connection
+#if MQTT_SECURITY == SEC_NONSSL
+#define MQTT_PORT			1883
+#else
+#define MQTT_PORT			8883
+#endif
+#define MQTT_KEEPALIVE		120		// seconds
+
 // configuration of GPIO pins
 #define PIN_433TX		12
 #define PIN_WPS			13
@@ -34,9 +47,6 @@
 
 // Missing ESP8266 SDK function prototypes and defines.
 #include "ets_missing.h"
-
-// MQTT settings see mqtt_config.h
-#include "mqtt_config.h"
 
 // Secret MQTT and WiFi settings see user_secret.h
 #include "user_secret.h"

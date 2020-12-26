@@ -40,7 +40,7 @@ extern "C" {
 #include "common.h"
 #include "wifi.h"
 #include "dst.h"
-#include "wiringESP.h"
+#include "wiringESP/wiringESP.h"
 }
 
 #include "RCSwitch.h"
@@ -446,7 +446,7 @@ Main_Task(os_event_t *event_p)
 		INFO("%s: Got signal 'SIG_GOTIP'." CRLF, __FUNCTION__);
 		// ssl/tls handshake failed, Reason:[-0x7200], increase size found in log
 		// ssl_tls.c 3495 lvl 3: input record: msgtype = 22, version = [3:3], msglen = 2313
-		espconn_secure_set_size(ESPCONN_CLIENT, 2313);
+		//espconn_secure_set_size(ESPCONN_CLIENT, 2313);
 		MQTT_Connect(&mqttClient);
 
 		// setup NTP
@@ -475,9 +475,12 @@ user_init(void)
 {
 	// if you do not set the uart, ESP8266 will start with 74880 baud :-(
 	//uart_div_modify(0, UART_CLK_FREQ / 115200);
-	INFO("SDK version: %s" CRLF, system_get_sdk_version());
+	//INFO("SDK version: %s" CRLF, system_get_sdk_version());
 	INFO("rcplugs-esp version: %d" CRLF, APP_VERSION);
-	INFO("Reset reason: %s" CRLF CRLF, rst_reason_text[system_get_rst_info()->reason]);
+	INFO("Reset reason: %s" CRLF, rst_reason_text[system_get_rst_info()->reason]);
+	INFO("Chip ID: %08X" CRLF, system_get_chip_id());
+	INFO("Memory info:" CRLF);
+	system_print_meminfo();
 
 	mqtt_connected = false;
 	send_start_time = false;
@@ -485,7 +488,7 @@ user_init(void)
 
 #ifdef WPS
 	INFO("WiFi WPS setup ..." CRLF);
-    wifi_set_event_handler_cb(WifiWpsHandleEvent_Cb);
+	wifi_set_event_handler_cb(WifiWpsHandleEvent_Cb);
 	wifi_set_opmode(STATION_MODE);
 	wifi_station_set_hostname(sysCfg.device_id);
 	// setup WPS button pin
