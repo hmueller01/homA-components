@@ -1,4 +1,3 @@
-/*
 /* user_cfg.c
 *
 * Copyright (c) 2014-2015, Tuan PM <tuanpm at live dot com>
