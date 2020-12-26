@@ -17,6 +17,7 @@
 # - 2017-12-09: adopted to rcswitch project (hmueller)
 
 VERBOSE		= 0
+FLAVOR		= release # debug or release
 
 # name for the target project
 TARGET		= rcplugs
@@ -51,8 +52,8 @@ UPDATE_PATH		:= /var/www/html/esp8266fw/$(TARGET)
 # MQTT settings to publish new firmware to target
 MQTT_PUB		:= mosquitto_pub
 MQTT_HOST		:= $(shell grep '^\#define MQTT_HOST' include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
-MQTT_USER		:= $(shell grep '^\#define MQTT_USER' include/user_secret.h | sed 's/.*"\(.*\)".*/\1/')
-MQTT_PASS		:= $(shell grep '^\#define MQTT_PASS' include/user_secret.h | sed 's/.*"\(.*\)".*/\1/')
+MQTT_USER		:= $(shell grep '^\#define MQTT_USER' include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
+MQTT_PASS		:= $(shell grep '^\#define MQTT_PASS' include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
 
 # app version: 0 = non-OTA, 1 = OTA user1 (auto builds user2), 2 = OTA user2
 APP			?= 1
@@ -85,8 +86,12 @@ LIBS		= c gcc hal pp phy net80211 lwip wpa wps crypto upgrade main mbedtls mqtt 
 EXTRA_LIBDIR	= $(ESP_ROOT)/local/lib
 
 # compiler flags using during compilation of source files
+ifeq ($(FLAVOR),debug)
+    DEFINES	+= -DDEBUG_ON
+    CFLAGS	+= -g
+endif
 DEFINES		+= -D__ets__ -DICACHE_FLASH -DSPI_FLASH_SIZE_MAP=$(SIZE_MAP)
-CFLAGS		= -Os -g -O2 -std=c99 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals $(DEFINES)
+CFLAGS		+= -Os -std=c99 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals $(DEFINES)
 CXXFLAGS	= $(subst -std=c99,-std=c++11,$(CFLAGS)) -fno-rtti -fno-exceptions
 
 # linker flags used to generate the main object file
