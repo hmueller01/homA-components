@@ -26,12 +26,15 @@ TARGET		= rcplugs
 BUILD_BASE	= build
 FW_BASE		= firmware
 
+# Root of Espressif toolset (compiler, SDK)
+ESP_ROOT	= /opt/Espressif
+
 # base directory for the compiler
 COMPILE		= gcc
-XTENSA_TOOLS_ROOT ?= /opt/Espressif/xtensa-lx106-elf/bin
+XTENSA_TOOLS_ROOT ?= $(ESP_ROOT)/xtensa-lx106-elf/bin
 
 # base directory of the ESP8266 SDK package, absolute
-SDK_BASE	?= /opt/Espressif/ESP8266_NONOS_SDK-3.0.4
+SDK_BASE	?= $(ESP_ROOT)/ESP8266_NONOS_SDK-3.0.4
 
 # esptool.py path and port
 ESPTOOL		?= $(XTENSA_TOOLS_ROOT)/esptool.py
@@ -47,7 +50,7 @@ UPDATE_PATH		:= /var/www/html/esp8266fw/$(TARGET)
 
 # MQTT settings to publish new firmware to target
 MQTT_PUB		:= mosquitto_pub
-MQTT_HOST		:= $(shell grep '^\#define MQTT_HOST' include/mqtt_config.h | sed 's/.*"\(.*\)".*/\1/')
+MQTT_HOST		:= $(shell grep '^\#define MQTT_HOST' include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
 MQTT_USER		:= $(shell grep '^\#define MQTT_USER' include/user_secret.h | sed 's/.*"\(.*\)".*/\1/')
 MQTT_PASS		:= $(shell grep '^\#define MQTT_PASS' include/user_secret.h | sed 's/.*"\(.*\)".*/\1/')
 
@@ -74,12 +77,12 @@ SIZE_MAP	?= 4
 FLASH_SIZE	?= 4096
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= modules mqtt rc-switch wiringESP user
-EXTRA_INCDIR	= include modules mqtt/mqtt rc-switch wiringESP
+MODULES		= modules rc-switch user
+EXTRA_INCDIR	= include modules rc-switch $(ESP_ROOT)/local/include
 
 # libraries used in this project, mainly provided by the SDK
-LIBS		= c gcc hal pp phy net80211 lwip wpa wps crypto upgrade main mbedtls
-EXTRA_LIBDIR	=
+LIBS		= c gcc hal pp phy net80211 lwip wpa wps crypto upgrade main mbedtls mqtt wiringESP
+EXTRA_LIBDIR	= $(ESP_ROOT)/local/lib
 
 # compiler flags using during compilation of source files
 DEFINES		+= -D__ets__ -DICACHE_FLASH -DSPI_FLASH_SIZE_MAP=$(SIZE_MAP)
@@ -213,7 +216,7 @@ endef
 .PHONY: all checkdirs flash clean connect publish
 
 ifeq ($(APP), 0)
-all: checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
+all: checkdirs $(DEP) $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
 else
 all: checkdirs $(DEP) $(TARGET_OUT) $(FW_FILE_OTA)
 endif
