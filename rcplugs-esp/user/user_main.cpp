@@ -136,7 +136,7 @@ MqttConnected_Cb(uint32_t *args)
 
 	// setup HomA device topics
 	//MQTT_Publish(*client, topic, data, data_length, qos, retain)
-	/*
+	/* use setup.py instead
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, 1);
 	*/
