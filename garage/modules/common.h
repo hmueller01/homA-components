@@ -1,12 +1,14 @@
 /**
  * @file
- * @brief Common functions and definitions
+ * @brief Common ESP8266 user functions and definitions
+ * @author Holger Mueller
  */
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
 #include <c_types.h>
 #include <osapi.h>
+#include <ctype.h>
 #include "user_config.h"
 
 #ifndef INFO
@@ -25,10 +27,24 @@
 #  endif
 #endif
 
+#define CR "\r"
+#define LF "\n"
 #define CRLF "\r\n"
 
+#ifndef NAN
+#define NAN __builtin_nanf("0x7fc00000")
+#endif
+#ifndef INFINITY
+#define INFINITY __builtin_huge_valf()
+#endif
+
+#define strtolower(sptr) for (char *p = sptr; *p; ++p) *p = tolower(*p);
 
 char *ftoa(char *s, float f);
 char *itoa(char *s, uint16_t i);
+double atof(const char *s);
+float expf(float x);
+float logf(float x);
+float powf(float x, float y);
 
 #endif /* __COMMON_H__ */
