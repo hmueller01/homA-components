@@ -4,16 +4,15 @@
  *  Created on: Dec 30, 2014
  *      Author: Minh
  */
-#include "wifi.h"
-#include "user_interface.h"
-#include "osapi.h"
-#include "espconn.h"
-#include "os_type.h"
-#include "mem.h"
-#include "mqtt_msg.h"
-#include "debug.h"
+#include <user_interface.h>
+#include <osapi.h>
+#include <espconn.h>
+#include <os_type.h>
+#include <mem.h>
+
+#include "common.h"
 #include "user_config.h"
-#include "config.h"
+#include "wifi.h"
 
 static ETSTimer WiFiLinker;
 WifiCallback wifiCb = NULL;
@@ -90,4 +89,3 @@ WIFI_Connect(uint8_t* ssid, uint8_t* pass, WifiCallback cb)
 	//wifi_station_set_auto_connect(TRUE);
 	wifi_station_connect();
 }
-
