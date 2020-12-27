@@ -27,10 +27,18 @@
 #endif // __cplusplus
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 // Missing ESP8266 SDK function prototypes. GCC will warn on these if in c99 mode.
 #if ESP_SDK_VERSION_NUMBER < 0x030004
 void ets_isr_mask(unsigned intr);
 void ets_isr_unmask(unsigned intr);
 #endif // ESP_SDK_VERSION_NUMBER
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
 #endif // __ETS_MISSING_H__
