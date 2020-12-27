@@ -78,8 +78,8 @@ SIZE_MAP	?= 4
 FLASH_SIZE	?= 4096
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= modules rc-switch user
-EXTRA_INCDIR	= include modules rc-switch $(ESP_ROOT)/local/include
+MODULES		= common rc-switch user
+EXTRA_INCDIR	= include common rc-switch $(ESP_ROOT)/local/include $(ESP_ROOT)/local/include/wiringESP
 
 # libraries used in this project, mainly provided by the SDK
 LIBS		= c gcc hal pp phy net80211 lwip wpa wps crypto upgrade main mbedtls mqtt wiringESP
