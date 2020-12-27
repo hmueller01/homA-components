@@ -3,7 +3,7 @@
  * @brief ESP8266 class to read and write from the Microchip MCP23017 I2C interface.
  *
  * MIT License
- * Copyright (c) 2017 Holger Müller
+ * Copyright (c) 2017 Holger Mueller
  */
 
 // C++ wrapper

@@ -1,7 +1,9 @@
 /**
  * @file
  * @brief Common ESP8266 user functions
- * @author Holger Mueller
+ *
+ * MIT License
+ * Copyright (c) 2017 Holger Mueller
  */
 
 #include <c_types.h>

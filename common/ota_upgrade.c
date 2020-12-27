@@ -1,8 +1,11 @@
 /**
  * @file
- * @brief User OTA upgrade functions.
+ * @brief User OTA upgrade functions
  * Thanks to Martin
  * https://harizanov.com/2015/06/firmware-over-the-air-fota-for-esp8266-soc/
+ *
+ * MIT License
+ * Copyright (c) 2017 Holger Mueller
  */
 
 #include <osapi.h>

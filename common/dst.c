@@ -3,11 +3,10 @@
  * @brief Daylight saving time functions
  * Based on Richard A Burtons timezone.c
  * https://github.com/raburton/esp8266/tree/master/ntp
- * Original Copyright 2015 Richard A Burton
- * richardaburton@gmail.com
- * The MIT License (MIT)
- * See license.txt for license terms.
- * Adapted and modified by Holger Mueller
+ *
+ * MIT License
+ * Copyright (c) 2015 Richard A Burton (richardaburton@gmail.com)
+ * Copyright (c) 2017 Holger Mueller
  */
 
 #include <c_types.h>

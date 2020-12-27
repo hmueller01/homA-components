@@ -1,7 +1,9 @@
 /**
  * @file
  * @brief Common ESP8266 user functions and definitions
- * @author Holger Mueller
+ *
+ * MIT License
+ * Copyright (c) 2017 Holger Mueller
  */
 #ifndef __COMMON_H__
 #define __COMMON_H__

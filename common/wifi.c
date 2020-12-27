@@ -1,9 +1,12 @@
-/*
- * wifi.c
+/**
+ * @file
+ * @brief WiFi functions
+ * Created on: Dec 30, 2014 by Minh (ESP8266_NONOS_SDK example)
  *
- *  Created on: Dec 30, 2014
- *      Author: Minh
+ * MIT License
+ * Copyright (c) 2017 Holger Mueller
  */
+
 #include <user_interface.h>
 #include <osapi.h>
 #include <espconn.h>

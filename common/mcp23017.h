@@ -5,7 +5,6 @@
  * MIT License
  * Copyright (c) 2017 Holger Müller
  */
-
 #ifndef __MCP23017_H__
 #define __MCP23017_H__
 
