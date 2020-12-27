@@ -11,45 +11,49 @@
 # - 2014-10-06: Added global var for the Xtensa tool root
 # - 2014-11-23: Updated for SDK 0.9.3
 # - 2014-12-25: Replaced esptool by esptool.py
-# - 2015-09-17: adopted to RHTS project (Holger)
-# - 2017-05-27: adopted to Windsensor project (Holger)
+# - 2015-09-17: adopted to RHTS project (hmueller)
+# - 2017-05-27: adopted to Windsensor project (hmueller)
 # - 2017-06-07: rewritten to support OTA and various flash sizes
-# - 2018-03-14: adopted to Garage project (Holger)
+# - 2018-03-14: adopted to Garage project (hmueller)
 
 VERBOSE		= 0
+FLAVOR		= release # debug or release
 
 # name for the target project
-TARGET		= Garage
+TARGET		= garage
 
 # Output directors to store intermediate compiled files
 # relative to the project directory
 BUILD_BASE	= build
 FW_BASE		= firmware
 
+# Root of Espressif toolset (compiler, SDK)
+ESP_ROOT	= /opt/Espressif
+
 # base directory for the compiler
 COMPILE		= gcc
-XTENSA_TOOLS_ROOT ?= /opt/Espressif/xtensa-lx106-elf/bin
+XTENSA_TOOLS_ROOT ?= $(ESP_ROOT)/xtensa-lx106-elf/bin
 
 # base directory of the ESP8266 SDK package, absolute
-#SDK_BASE	?= /opt/Espressif/ESP8266_SDK
-SDK_BASE	?= /opt/Espressif/ESP8266_NONOS_SDK
+SDK_BASE	?= $(ESP_ROOT)/ESP8266_NONOS_SDK-3.0.4
 
 # esptool.py path and port
 ESPTOOL		?= $(XTENSA_TOOLS_ROOT)/esptool.py
-ESPPORT		?= /dev/tty.SLAB_USBtoUART
+#ESPPORT		?= /dev/tty.SLAB_USBtoUART
+ESPPORT		?= /dev/tty.usbserial-1430
 
 # gen_appbin.py Espressif's generate bin script
 GEN_APPBIN	?= python2 $(SDK_BASE)/tools/gen_appbin.py
 
 # Server and location on update server for new firmware
 UPDATE_SERVER	:= $(shell grep "^\#define OTA_HOST" include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
-UPDATE_PATH		:= /var/www/html/esp8266fw/garage
+UPDATE_PATH		:= /var/www/html/esp8266fw/$(TARGET)
 
 # MQTT settings to publish new firmware to target
 MQTT_PUB		:= mosquitto_pub
-MQTT_HOST		:= $(shell grep '^\#define MQTT_HOST' include/mqtt_config.h | sed 's/.*"\(.*\)".*/\1/')
-MQTT_USER		:= $(shell grep '^\#define MQTT_USER' include/user_secret.h | sed 's/.*"\(.*\)".*/\1/')
-MQTT_PASS		:= $(shell grep '^\#define MQTT_PASS' include/user_secret.h | sed 's/.*"\(.*\)".*/\1/')
+MQTT_HOST		:= $(shell grep '^\#define MQTT_HOST' include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
+MQTT_USER		:= $(shell grep '^\#define MQTT_USER' include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
+MQTT_PASS		:= $(shell grep '^\#define MQTT_PASS' include/user_config.h | sed 's/.*"\(.*\)".*/\1/')
 
 # app version: 0 = non-OTA, 1 = OTA user1 (auto builds user2), 2 = OTA user2
 APP			?= 1
@@ -74,18 +78,25 @@ SIZE_MAP	?= 4
 FLASH_SIZE	?= 4096
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= modules mqtt user wiringESP
-EXTRA_INCDIR	= include modules mqtt wiringESP
+MODULES		= modules user
+EXTRA_INCDIR	= include modules $(ESP_ROOT)/local/include
 
 # libraries used in this project, mainly provided by the SDK
-LIBS		= c gcc hal pp phy net80211 lwip wpa wps crypto upgrade main
+LIBS		= c gcc hal pp phy net80211 lwip wpa wps crypto upgrade main mbedtls mqtt wiringESP
+EXTRA_LIBDIR	= $(ESP_ROOT)/local/lib
 
 # compiler flags using during compilation of source files
-CFLAGS		= -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH
-CXXFLAGS	= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++11
+ifeq ($(FLAVOR),debug)
+    DEFINES	+= -DDEBUG_ON
+    CFLAGS	+= -g
+endif
+DEFINES		+= -D__ets__ -DICACHE_FLASH -DSPI_FLASH_SIZE_MAP=$(SIZE_MAP)
+CFLAGS		+= -Os -std=c99 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals $(DEFINES)
+CXXFLAGS	= $(subst -std=c99,-std=c++11,$(CFLAGS)) -fno-rtti -fno-exceptions
 
 # linker flags used to generate the main object file
-LDFLAGS		= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
+LDFLAGS		= -nostdlib -u call_user_start -Wl,-static -Wl,--gc-sections
+#-Wl,--no-check-sections
 
 # we create two different files for uploading into the flash
 # these are the names and options to generate them
@@ -96,32 +107,34 @@ FW_ADDR_OTA2	= 0x81000
 ifeq ($(APP), 2)
     FW_ADDR_OTA	= $(FW_ADDR_OTA2)
 endif
+FW_ADDR_CA_CERT	= 0x77000
 # 512KB Flash
 ifeq ($(FLASH_SIZE), 512)
-  FW_ADDR_ESP_INIT	= 0x7C000
-  FW_ADDR_ESP_BLANK	= 0x7E000
-  # blank should be flashed to 0xfe000 also ...
+    FW_ADDR_ESP_INIT	= 0x7C000
+    FW_ADDR_ESP_BLANK	= 0x7E000
+    # blank should be flashed to 0xfe000 also ...
 endif
 # 4096KB Flash
 ifeq ($(FLASH_SIZE), 4096)
-  FW_ADDR_ESP_INIT	= 0x3FC000
-  FW_ADDR_ESP_BLANK	= 0x3FE000
+    FW_ADDR_ESP_INIT	= 0x3FC000
+    FW_ADDR_ESP_BLANK	= 0x3FE000
 endif
 
 FW_FILE_1	:= $(addprefix $(FW_BASE)/,$(FW_ADDR_1).bin)
 FW_FILE_2	:= $(addprefix $(FW_BASE)/,$(FW_ADDR_2).bin)
-FW_FILE_ESP_INIT	:= $(SDK_BASE)/bin/esp_init_data_default.bin
+FW_FILE_ESP_INIT	:= $(SDK_BASE)/bin/esp_init_data_default_v05.bin
 FW_FILE_ESP_BLANK	:= $(SDK_BASE)/bin/blank.bin
 FW_FILE_ESP_BOOT	:= $(SDK_BASE)/bin/boot_v1.7.bin
 FW_FILE_OTA	:= $(FW_BASE)/user$(APP).$(FLASH_SIZE).$(BOOT).$(SIZE_MAP).bin
 FW_FILE_OTA2	:= $(FW_BASE)/user2.$(FLASH_SIZE).$(BOOT).$(SIZE_MAP).bin
+FW_FILE_CA_CERT	:= bin/esp_ca_cert.bin
 
 
 ####
 #### no user configurable options below here
 ####
 app_version	:= $(shell grep "^\#define APP_VERSION" include/user_config.h | sed "s/\#define APP_VERSION "//)
-system_id	:= $(shell grep "^\#define HOMA_SYSTEM_ID" include/user_config.h | sed 's/.*"\(.*\)"/\1/')
+system_id	?= $(shell grep "^\#define HOMA_SYSTEM_ID" include/user_config.h | sed 's/.*"\(.*\)"/\1/')
 
 # set tools to use as compiler, librarian and linker
 CC			:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
@@ -141,10 +154,11 @@ BUILD_DIR	:= $(addprefix $(BUILD_BASE)/,$(MODULES))
 SDK_LIBDIR	:= $(addprefix $(SDK_BASE)/,$(SDK_LIBDIR))
 SDK_INCDIR	:= $(addprefix -I$(SDK_BASE)/,$(SDK_INCDIR))
 
-SRC		:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c*))
-C_OBJ		:= $(patsubst %.c,%.o,$(SRC))
-CXX_OBJ		:= $(patsubst %.cpp,%.o,$(C_OBJ))
-OBJ		:= $(patsubst %.o,$(BUILD_BASE)/%.o,$(CXX_OBJ))
+SRC			:= $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c) $(wildcard $(sdir)/*.cpp))
+OBJ			:= $(patsubst %.c,$(BUILD_BASE)/%.o,$(SRC))
+OBJ			:= $(patsubst %.cpp,$(BUILD_BASE)/%.o,$(OBJ))
+DEP			:= $(patsubst %.c,$(BUILD_BASE)/%.d,$(SRC))
+DEP			:= $(patsubst %.cpp,$(BUILD_BASE)/%.d,$(DEP))
 LIBS		:= $(addprefix -l,$(LIBS))
 APP_AR		:= $(addprefix $(BUILD_BASE)/,$(TARGET)_app.a)
 TARGET_OUT	:= $(addprefix $(BUILD_BASE)/,$(TARGET).out)
@@ -152,6 +166,8 @@ TARGET_OUT	:= $(addprefix $(BUILD_BASE)/,$(TARGET).out)
 INCDIR		:= $(addprefix -I,$(SRC_DIR))
 EXTRA_INCDIR	:= $(addprefix -I,$(EXTRA_INCDIR))
 MODULE_INCDIR	:= $(addsuffix /include,$(INCDIR))
+
+EXTRA_LIBDIR	:= $(addprefix -L,$(EXTRA_LIBDIR))
 
 # linker script used by the linker
 LD_SCRIPT	= eagle.app.v6.ld
@@ -175,39 +191,54 @@ ifneq ($(APP),0)
 endif
 LD_SCRIPT	:= $(addprefix -T$(SDK_BASE)/$(SDK_LDDIR)/,$(LD_SCRIPT))
 
-V ?= $(VERBOSE)
-ifeq ("$(V)","1")
-  Q :=
-  vecho := @true
+ifeq ("$(VERBOSE)", "1")
+    Q :=
+    #vecho := @true
+    vecho := @echo
 else
-  Q := @
-  vecho := @echo
+    Q := @
+    vecho := @echo
 endif
 
 vpath %.c $(SRC_DIR)
 vpath %.cpp $(SRC_DIR)
 
 define compile-objects
+$1/%.d: %.c
+	$(vecho) "GEN $$@"
+	$(Q) $(CC) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CFLAGS) -MM $$< | sed 's;\(.*\)\.o[ :]*;$$(dir $$@)\1.o $$@ : ;g' > $$@
+$1/%.d: %.cpp
+	$(vecho) "GEN $$@"
+	$(Q) $(CXX) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CXXFLAGS) -MM $$< | sed 's;\(.*\)\.o[ :]*;$$(dir $$@)\1.o $$@ : ;g' > $$@
 $1/%.o: %.c
 	$(vecho) "CC $$<"
 	$(Q) $(CC) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CFLAGS) -c $$< -o $$@
 $1/%.o: %.cpp
 	$(vecho) "C+ $$<"
-	$(Q) $(CXX) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CXXFLAGS)  -c $$< -o $$@
+	$(Q) $(CXX) $(INCDIR) $(MODULE_INCDIR) $(EXTRA_INCDIR) $(SDK_INCDIR) $(CXXFLAGS) -c $$< -o $$@
 endef
 
 .PHONY: all checkdirs flash clean connect publish
 
 ifeq ($(APP), 0)
-all: checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
+all: checkdirs $(DEP) $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
 else
-all: checkdirs $(TARGET_OUT) $(FW_FILE_OTA)
+all: checkdirs $(DEP) $(TARGET_OUT) $(FW_FILE_OTA)
 endif
 
+checkdirs: $(BUILD_DIR) $(FW_BASE)
+
+$(BUILD_DIR):
+	$(info CREATE $@)
+	$(Q) mkdir -p $@
+
+$(FW_BASE):
+	$(info CREATE $@)
+	$(Q) mkdir -p $@
+
 $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
-	$(vecho) "FW $(FW_BASE)/"
+	$(info FW $(FW_BASE)/)
     ifeq ($(APP), 0)
-#	  $(Q) $(ESPTOOL) elf2image -o $(FW_BASE)/ -ff 40m -fs 4m $(TARGET_OUT)
 	  $(Q) $(ESPTOOL) elf2image -o $(FW_BASE)/ -ff 40m -fs 4MB $(TARGET_OUT)
     else ifeq ($(APP), 9999)
 #	  # does not work, app cores after boot loader
@@ -238,21 +269,12 @@ $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
     endif
 
 $(TARGET_OUT): $(APP_AR)
-	$(vecho) "LD $@"
-	$(Q) $(LD) -L$(SDK_LIBDIR) $(LD_SCRIPT) $(LDFLAGS) -Wl,--start-group $(LIBS) $(APP_AR) -Wl,--end-group -o $@
+	$(info LD $@)
+	$(Q) $(LD) -L$(SDK_LIBDIR) $(EXTRA_LIBDIR) $(LD_SCRIPT) $(LDFLAGS) -Wl,--start-group $(LIBS) $(APP_AR) -Wl,--end-group -o $@
 
 $(APP_AR): $(OBJ)
-	$(vecho) "AR $@"
+	$(info AR $@)
 	$(Q) $(AR) cru $@ $^
-
-checkdirs: $(BUILD_DIR) $(FW_BASE)
-
-$(BUILD_DIR):
-	$(Q) mkdir -p $@
-
-$(FW_BASE):
-	$(Q) mkdir -p $@
-
 
 ifeq ($(APP), 0)
 flash: $(FW_FILE_1) $(FW_FILE_2)
@@ -264,16 +286,27 @@ flash: $(FW_FILE_1) $(FW_FILE_2)
 	#$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio $(FW_ADDR_1) $(FW_FILE_1) $(FW_ADDR_2) $(FW_FILE_2)
 else ifeq ($(APP), 1)
 flash: $(FW_FILE_OTA)
-	$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio 0x00000 $(FW_FILE_ESP_BOOT) $(FW_ADDR_OTA) $(FW_FILE_OTA) $(FW_ADDR_OTA2) $(FW_FILE_OTA2) $(FW_ADDR_ESP_INIT) $(FW_FILE_ESP_INIT)
+	# write esp_init_data_default and clear default system parameter values
+	$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio 0x00000 $(FW_FILE_ESP_BOOT) $(FW_ADDR_OTA) $(FW_FILE_OTA) $(FW_ADDR_OTA2) $(FW_FILE_OTA2) $(FW_ADDR_ESP_INIT) $(FW_FILE_ESP_INIT) $(FW_ADDR_ESP_BLANK) $(FW_FILE_ESP_BLANK) $(FW_ADDR_CA_CERT) $(FW_FILE_CA_CERT)
+	# only write compiled code
+	#$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio 0x00000 $(FW_FILE_ESP_BOOT) $(FW_ADDR_OTA) $(FW_FILE_OTA) $(FW_ADDR_OTA2) $(FW_FILE_OTA2)
+	#$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio $(FW_ADDR_OTA2) $(FW_FILE_OTA2) $(FW_ADDR_CA_CERT) $(FW_FILE_CA_CERT)
 endif
 
 connect:
 	picocom -b 74880 --omap crcrlf $(ESPPORT)
 
-publish:
+publish: all
 	$(MQTT_PUB) -h $(MQTT_HOST) -u "$(MQTT_USER)" -P "$(MQTT_PASS)" -q 2 -t "/sys/$(system_id)/server_version" -m "$(app_version)"
 
 clean:
 	$(Q) rm -rf $(FW_BASE) $(BUILD_BASE)
+
+# include deps only if exist (after first run)
+ifeq ($(wildcard $(DEP)),$(DEP))
+ifneq ($(filter clean,$(MAKECMDGOALS)),clean)
+include $(DEP)
+endif
+endif
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
