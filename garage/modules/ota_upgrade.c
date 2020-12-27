@@ -14,7 +14,7 @@
 #include "common.h"
 #include "user_config.h"
 #include "ota_upgrade.h"
-#include "utils.h"
+#include "mqtt/utils.h"
 
 // global variables
 LOCAL struct espconn gethostname_conn;
@@ -28,7 +28,7 @@ LOCAL struct espconn gethostname_conn;
  * @param  arg - Pointer to upgrade_server_info structure.
  ******************************************************************
  */
-static void ICACHE_FLASH_ATTR 
+static void ICACHE_FLASH_ATTR
 ota_finished_callback(void *arg)
 {
 	struct upgrade_server_info *update = (struct upgrade_server_info*) arg;
@@ -58,7 +58,7 @@ ota_finished_callback(void *arg)
  * @return true: upgrade started, false: failed, not startet.
  ******************************************************************
  */
-LOCAL bool ICACHE_FLASH_ATTR 
+LOCAL bool ICACHE_FLASH_ATTR
 OtaHandleUpgrade(ip_addr_t *server_ip, uint16_t port, const char *path)
 {
 	const char *file;
@@ -80,7 +80,7 @@ OtaHandleUpgrade(ip_addr_t *server_ip, uint16_t port, const char *path)
 		return false;
 	}
 
-	struct upgrade_server_info *update = 
+	struct upgrade_server_info *update =
 		(struct upgrade_server_info *)os_zalloc(sizeof(struct upgrade_server_info));
 	update->pespconn = (struct espconn *)os_zalloc(sizeof(struct espconn));
 	os_memcpy(update->ip, server_ip, 4);
@@ -157,7 +157,7 @@ OtaUpgradeDnsFound_Cb(const char *name, ip_addr_t *ipaddr, void *arg)
  * @return true: upgrade started, false: failed, not startet.
  ******************************************************************
  */
-bool ICACHE_FLASH_ATTR 
+bool ICACHE_FLASH_ATTR
 OtaUpgrade(uint16_t server_version)
 {
 	ip_addr_t update_server_ip;

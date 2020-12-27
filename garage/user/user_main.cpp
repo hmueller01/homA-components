@@ -32,13 +32,11 @@ extern "C" {
 #include "user_config.h"
 #include "common.h"
 #include "ota_upgrade.h"
-#include "mqtt_config.h"
-#include "mqtt.h"
-#include "utils.h"
-#include "config.h"
+#include "user_cfg.h"
 #include "wifi.h"
 #include "dst.h"
-#include "wiringESP.h"
+#include "mqtt/mqtt.h"
+#include "wiringESP/wiringESP.h"
 #include "mcp23017.h"
 }
 
