@@ -8,7 +8,6 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-#include "ets_missing.h" // Missing ESP8266 SDK function prototypes and defines.
 #include "mqtt/mqtt.h"
 
 #define APP_VERSION 1
