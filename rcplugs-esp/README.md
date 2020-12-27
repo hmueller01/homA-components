@@ -27,23 +27,22 @@ This component is an ESP8266 project allowing the control of generic 433Mhz wire
 #define MQTT_USER	"" // MQTT username, set NULL if anonymous is allowed
 #define MQTT_PASS	"" // MQTT password, set NULL if anonymous is allowed
 ```
+* Edit `setup.py` to match the installed __rcplugs__ (see `mqtt_arr`) and execute it.
+* Create `esp_ca_cert.bin`: Copy your `ca.crt` to `ESP8266_NONOS_SDK/tools` directory and execute `makefile.sh`. Copy the generated `bin/esp_ca_cert.bin` to the rhts bin folder.
+See also [ESP8266 Non-OS SDK SSL User Manual](https://www.espressif.com/sites/default/files/documentation/5a-esp8266_sdk_ssl_user_manual_en.pdf) in the Espressif documentation.
 
 * Compile the project
 ```bash
 $ cd $HOMA_BASEDIR/components/rcplugs-esp
 $ make ESP_ROOT=/opt/Espressif
 ```
-* Start the ESP8266 board in boot mode and flash the firmware
+Start the ESP8266 board in boot mode and flash the firmware
 ```bash
 $ make ESP_ROOT=/opt/Espressif flash
 ```
-* Once it is running it can be updated by FOTA. Increase the ```APP_VERSION``` in ```include/user_config.h``` and trigger the update by
+Once it is running it can be updated by FOTA. Increase the ```APP_VERSION``` in ```include/user_config.h``` and trigger the update by
 ```bash
 $ make ESP_ROOT=/opt/Espressif publish
-```
-* Configure `setup.py`, e.g. the installed __rcplugs__ (see `mqtt_arr`) and execute it
-```bash
-$ python setup.py
 ```
 
 ### Usage
