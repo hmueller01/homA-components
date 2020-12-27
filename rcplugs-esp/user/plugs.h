@@ -1,10 +1,10 @@
-/*
- * plugs.h
+/**
+ * @file
+ * @brief Functions to manage the rcplugs
  *
- *  Created on: 16.12.2017
- *      Author: hmueller
+ * MIT License
+ * Copyright (c) 2017 Holger Mueller
  */
-
 #ifndef __PLUGS_H__
 #define __PLUGS_H__
 

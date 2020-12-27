@@ -1,8 +1,9 @@
 /**
  * @file
- * @brief Functions to manage the plugs.
- * @author hmueller01
- * @date 2017-12-16, 2018-01-10
+ * @brief Functions to manage the rcplugs
+ *
+ * MIT License
+ * Copyright (c) 2017 Holger Mueller
  */
 
 // C++ wrapper
