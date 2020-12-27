@@ -4,15 +4,16 @@
 #include <c_types.h>
 #include <time.h>
 
+
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif // __cplusplus
 
 bool isDST(time_t timestamp);
 time_t applyDST(time_t timestamp);
 
 #ifdef __cplusplus
 }
-#endif
+#endif // __cplusplus
 
 #endif // __DST_H__

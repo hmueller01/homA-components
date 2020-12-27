@@ -40,11 +40,19 @@
 
 #define strtolower(sptr) for (char *p = sptr; *p; ++p) *p = tolower(*p);
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 char *ftoa(char *s, float f);
 char *itoa(char *s, uint16_t i);
 double atof(const char *s);
 float expf(float x);
 float logf(float x);
 float powf(float x, float y);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
 #endif /* __COMMON_H__ */
