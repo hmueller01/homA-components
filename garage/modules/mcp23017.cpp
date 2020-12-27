@@ -12,9 +12,7 @@ extern "C" {
 #include <ets_sys.h>
 #include <osapi.h>
 
-#include "wiringESP.h"
 #include "mcp23017.h"
-#include "i2c_master.h"
 }
 
 #ifndef ERROR
@@ -100,26 +98,26 @@ Mcp23017::pinMode(uint8_t pin, uint8_t mode)
 
 	// write IODIR register to MCP23017
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_W);
+	m_i2c.writeByte(MCP23017_OP_W);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op write not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(IODIRA);
+	m_i2c.writeByte(IODIRA);
 	if (m_i2c.readAck()) {
 		ERROR("%s: addr not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(iodira);
+	m_i2c.writeByte(iodira);
 	if (m_i2c.readAck()) {
 		ERROR("%s: iodira not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
 	m_regs.reg.iodira = iodira;
-	m_i2c.sendByte(iodirb);
+	m_i2c.writeByte(iodirb);
 	if (m_i2c.readAck()) {
 		ERROR("%s: iodirb not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -130,26 +128,26 @@ Mcp23017::pinMode(uint8_t pin, uint8_t mode)
 
 	// write GPPU register to MCP23017
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_W);
+	m_i2c.writeByte(MCP23017_OP_W);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op write not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(GPPUA);
+	m_i2c.writeByte(GPPUA);
 	if (m_i2c.readAck()) {
 		ERROR("%s: addr not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(gppua);
+	m_i2c.writeByte(gppua);
 	if (m_i2c.readAck()) {
 		ERROR("%s: gppua not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
 	m_regs.reg.gppua = gppua;
-	m_i2c.sendByte(gppub);
+	m_i2c.writeByte(gppub);
 	if (m_i2c.readAck()) {
 		ERROR("%s: gppub not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -199,26 +197,26 @@ Mcp23017::pullUpDnControl(uint8_t pin, uint8_t pud)
 
 	// write GPPU register to MCP23017
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_W);
+	m_i2c.writeByte(MCP23017_OP_W);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op write not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(GPPUA);
+	m_i2c.writeByte(GPPUA);
 	if (m_i2c.readAck()) {
 		ERROR("%s: addr not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(gppua);
+	m_i2c.writeByte(gppua);
 	if (m_i2c.readAck()) {
 		ERROR("%s: gppua not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
 	m_regs.reg.gppua = gppua;
-	m_i2c.sendByte(gppub);
+	m_i2c.writeByte(gppub);
 	if (m_i2c.readAck()) {
 		ERROR("%s: gppub not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -242,13 +240,13 @@ Mcp23017::digitalRead16(void)
 {
 	// write GPIOA address to MCP23017
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_W);
+	m_i2c.writeByte(MCP23017_OP_W);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op write not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(GPIOA);
+	m_i2c.writeByte(GPIOA);
 	if (m_i2c.readAck()) {
 		ERROR("%s: addr not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -257,14 +255,14 @@ Mcp23017::digitalRead16(void)
 
 	// read gpio value
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_R);
+	m_i2c.writeByte(MCP23017_OP_R);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op read not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
 	m_regs.reg.gpioa = m_i2c.readByte();
-	m_i2c.sendAck();
+	m_i2c.writeAck();
 	m_regs.reg.gpiob = m_i2c.readByte();
 	m_i2c.stop();
 
@@ -303,19 +301,19 @@ Mcp23017::digitalWrite16(uint16_t value)
 {
 	// write GPIOA address to MCP23017
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_W);
+	m_i2c.writeByte(MCP23017_OP_W);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op write not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(GPIOA);
+	m_i2c.writeByte(GPIOA);
 	if (m_i2c.readAck()) {
 		ERROR("%s: addr not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte((uint8_t) value);
+	m_i2c.writeByte((uint8_t) value);
 	if (m_i2c.readAck()) {
 		ERROR("%s: gpioa not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -324,7 +322,7 @@ Mcp23017::digitalWrite16(uint16_t value)
 	// save in global register copy, as we have written it successfully
 	m_regs.reg.gpioa = (uint8_t) value;
 
-	m_i2c.sendByte((uint8_t) (value >> 8));
+	m_i2c.writeByte((uint8_t) (value >> 8));
 	if (m_i2c.readAck()) {
 		ERROR("%s: gpiob not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -388,13 +386,13 @@ Mcp23017::dumpRegs(void)
 
 	// write first address (IODIRA) to MCP23017
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_W);
+	m_i2c.writeByte(MCP23017_OP_W);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op write not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(IODIRA);
+	m_i2c.writeByte(IODIRA);
 	if (m_i2c.readAck()) {
 		ERROR("%s: addr not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -403,7 +401,7 @@ Mcp23017::dumpRegs(void)
 
 	// read values from here
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_R);
+	m_i2c.writeByte(MCP23017_OP_R);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op read not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -411,7 +409,7 @@ Mcp23017::dumpRegs(void)
 	}
 	for (i = 0; i < sizeof(m_regs.raw); i++) {
 		if (i) {
-			m_i2c.sendAck();
+			m_i2c.writeAck();
 		}
 		value = m_i2c.readByte();
 		ERROR("MCP23017 register 0x%02X=0x%02X\n", i, value);
@@ -461,13 +459,13 @@ Mcp23017::begin(uint8_t pin_sda, uint8_t pin_scl,
 
 	// write first address (IODIRA) to MCP23017
 	m_i2c.start();
-	m_i2c.sendByte(MCP23017_OP_W);
+	m_i2c.writeByte(MCP23017_OP_W);
 	if (m_i2c.readAck()) {
 		ERROR("%s: op write not ack\n", __FUNCTION__);
 		m_i2c.stop();
 		return false;
 	}
-	m_i2c.sendByte(IODIRA);
+	m_i2c.writeByte(IODIRA);
 	if (m_i2c.readAck()) {
 		ERROR("%s: addr not ack\n", __FUNCTION__);
 		m_i2c.stop();
@@ -476,7 +474,7 @@ Mcp23017::begin(uint8_t pin_sda, uint8_t pin_scl,
 	// write init values to MCP23017
 	for (i = 0; i < reg_size; i++) {
 		//ERROR("MCP23017 register %2x set to: %02x\n", i, mcp23017_reg.raw[i]);
-		m_i2c.sendByte(m_regs.raw[i]);
+		m_i2c.writeByte(m_regs.raw[i]);
 		if (m_i2c.readAck()) {
 			ERROR("%s: write byte %d not ack\n", __FUNCTION__, i);
 			m_i2c.stop();

@@ -13,21 +13,14 @@
 #include <osapi.h>
 #include <user_interface.h>
 
-#include "i2c_master.h"
+#include "wiringESP/wiringESP.h"
+#include "wiringESP/wiring_i2c_master.h"
 
 #define MCP23017_MIN_PIN 0
 #define MCP23017_MAX_PIN 15
 #define MCP23017_HW_ADDR 0x00 // HW address coded by pins A0, A1, A2
 #define MCP23017_OP_W (0x40 | MCP23017_HW_ADDR << 1)
 #define MCP23017_OP_R (MCP23017_OP_W | 0x01)
-
-// Pin levels
-#ifndef LOW
-#define LOW 0
-#endif
-#ifndef HIGH
-#define HIGH 1
-#endif
 
 // Pin modes
 #define MCP23017_INPUT 0
