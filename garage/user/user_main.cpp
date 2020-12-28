@@ -694,7 +694,7 @@ Main_Task(os_event_t *event_p)
  ******************************************************************
  * @brief  Main user init function.
  * @author Holger Mueller
- * @date   2018-03-15, 2018-05-11, 2019-10-13, 2020-05-24
+ * @date   2018-03-15, ..., 2020-12-28
  ******************************************************************
  */
 void ICACHE_FLASH_ATTR
@@ -702,10 +702,13 @@ user_init(void)
 {
 	// if you do not set the uart, ESP8266 will start with 74880 baud :-(
 	//uart_div_modify(0, UART_CLK_FREQ / 115200);
-	INFO("SDK version: %s" CRLF, system_get_sdk_version());
-	INFO("Reset reason: %s" CRLF, rst_reason_text[system_get_rst_info()->reason]);
+	//INFO("SDK version: %s" CRLF, system_get_sdk_version());
 	INFO("Garage version: %d" CRLF, APP_VERSION);
+	INFO("Reset reason: %s" CRLF, rst_reason_text[system_get_rst_info()->reason]);
 	INFO("HomA device ID: %s" CRLF, HOMA_SYSTEM_ID);
+	INFO("Chip ID: %08X" CRLF, system_get_chip_id());
+	INFO("Memory info:" CRLF);
+	system_print_meminfo();
 
 	mqtt_connected = FALSE;
 	send_start_time = FALSE;
@@ -758,6 +761,9 @@ user_init(void)
 	m_mcp23017.pinMode(CISTERN_LVL_BTN, MCP23017_OUTPUT);
 	m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // HIGH is BTN not pressed
 	m_mcp23017.dumpRegs();
+
+	// read cistern level at once (not first time in 10 min.)
+	system_os_post(MAIN_TASK_PRIO, SIG_CISTERN_LVL, 0);
 
 	INFO("System started." CRLF CRLF);
 }
