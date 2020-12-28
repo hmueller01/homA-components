@@ -10,7 +10,7 @@
  *
  * All configuration is done in "user_config.h".
  */
- 
+
 /*
 Programming Best Practices
 http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
@@ -27,12 +27,10 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 #include <sntp.h>
 
 #include "user_config.h"
-#include "user_common.h"
+#include "common.h"
 #include "ota_upgrade.h"
 #include "mqtt/mqtt.h"
-#include "mqtt/utils.h"
-#include "mqtt/debug.h"
-#include "config.h"
+#include "user_cfg.h"
 #include "key.h"
 #include "wifi.h"
 #include "dst.h"
@@ -99,7 +97,7 @@ user_rf_cal_sector_set(void)
 {
 	enum flash_size_map size_map = system_get_flash_size_map();
 	uint32 rf_cal_sec = 0;
-	
+
 	INFO(CRLF);
 	switch (size_map) {
 	case FLASH_SIZE_4M_MAP_256_256:
@@ -182,26 +180,26 @@ MqttConnected_Cb(uint32_t *args)
 	char app_version[20];
 	char *rst_reason;
 	MQTT_Client *client = (MQTT_Client *) args;
-	
+
 	INFO("MQTT: Connected" CRLF);
 	mqtt_connected = true;
-	
+
 	MQTT_Subscribe(client, "/sys/" HOMA_SYSTEM_ID "/#", 2);
 
 	// setup HomA device topics
 	//MQTT_Publish(*client, topic, data, data_length, qos, retain)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, 1);
-	
+
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Wind speed/meta/type", "text", 4, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Wind speed/meta/unit", " km/h", 5, 1, 1);
-	
+
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Wind speed/meta/order", "1", 1, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "2", 1, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "3", 1, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "4", 1, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "5", 1, 1, 1);
-	
+
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
 		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, 1);
 	itoa(app_version, APP_VERSION);
@@ -286,7 +284,7 @@ MqttData_Cb(uint32_t * args, const char *topic, uint32_t topic_len, const char *
 		server_version = atoi(dataBuf);
 		INFO("Received server version %d" CRLF, server_version);
 		if (server_version <= APP_VERSION) {
-			INFO("%s: No upgrade. Server version=%d, local version=%d" CRLF, 
+			INFO("%s: No upgrade. Server version=%d, local version=%d" CRLF,
 				__FUNCTION__, server_version, APP_VERSION);
 			server_version = 0; // reset server version
 		} else {
@@ -395,7 +393,7 @@ WifiWpsHandleEvent_Cb(System_Event_t *evt_p)
  * @author Holger Mueller
  * @date   2017-06-06
  *
- * @param  status - WiFi status. See wifi.c and 
+ * @param  status - WiFi status. See wifi.c and
  *                  wifi_station_get_connect_status()
  ******************************************************************
  */
@@ -606,7 +604,7 @@ user_init(void)
 	keys.key_num = KEY_NUM;
 	keys.single_key = single_key;
 	key_init(&keys);
-	
+
 	// setup Main_Task (for sending data)
 	system_os_task(Main_Task, MAIN_TASK_PRIO, main_task_queue, MAIN_TASK_QUEUE_LEN);
 
