@@ -27,7 +27,7 @@
 // configure FOTA IP or domain name, port and path on server
 #define OTA_HOST	"UPDATE.YOURDOMAIN"
 #define OTA_PORT	80
-#define OTA_PATH	"/esp8266fw/rcplugs/"
+#define OTA_PATH	"/esp8266fw/garage/"
 
 // HomA definitions
 #define HOMA_SYSTEM_ID	"123456-garage"
