@@ -40,7 +40,7 @@ SDK_BASE	?= $(ESP_ROOT)/ESP8266_NONOS_SDK-3.0.4
 # esptool.py path and port
 ESPTOOL		?= $(XTENSA_TOOLS_ROOT)/esptool.py
 #ESPPORT		?= /dev/tty.SLAB_USBtoUART
-ESPPORT		?= /dev/tty.usbserial-1430
+ESPPORT		?= /dev/tty.usbserial
 
 # gen_appbin.py Espressif's generate bin script
 GEN_APPBIN	?= python2 $(SDK_BASE)/tools/gen_appbin.py
