@@ -78,8 +78,8 @@ SIZE_MAP	?= 4
 FLASH_SIZE	?= 4096
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES		= common user
-EXTRA_INCDIR	= include common $(ESP_ROOT)/local/include
+MODULES		= common modules user
+EXTRA_INCDIR	= include common modules $(ESP_ROOT)/local/include
 
 # libraries used in this project, mainly provided by the SDK
 LIBS		= c gcc hal pp phy net80211 lwip wpa wps crypto upgrade main mbedtls mqtt wiringESP
@@ -289,8 +289,7 @@ flash: $(FW_FILE_OTA)
 	# write esp_init_data_default and clear default system parameter values
 	$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio 0x00000 $(FW_FILE_ESP_BOOT) $(FW_ADDR_OTA) $(FW_FILE_OTA) $(FW_ADDR_OTA2) $(FW_FILE_OTA2) $(FW_ADDR_ESP_INIT) $(FW_FILE_ESP_INIT) $(FW_ADDR_ESP_BLANK) $(FW_FILE_ESP_BLANK) $(FW_ADDR_CA_CERT) $(FW_FILE_CA_CERT)
 	# only write compiled code
-	#$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio 0x00000 $(FW_FILE_ESP_BOOT) $(FW_ADDR_OTA) $(FW_FILE_OTA) $(FW_ADDR_OTA2) $(FW_FILE_OTA2)
-	#$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio $(FW_ADDR_OTA2) $(FW_FILE_OTA2) $(FW_ADDR_CA_CERT) $(FW_FILE_CA_CERT)
+	#$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio $(FW_ADDR_OTA) $(FW_FILE_OTA) $(FW_ADDR_OTA2) $(FW_FILE_OTA2)
 endif
 
 connect:
