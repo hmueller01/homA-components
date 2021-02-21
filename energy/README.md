@@ -25,19 +25,19 @@ Modify `energy` sml_server device `/dev/vzir0` to your needs.
 
 ### Usage
 Start the application manually 
-```none
+```bash
 $ ./energy
 ```
 
 ### Systemd
 If your system supports it, you can start the application as a daemon from systemd by using the provided template.
-```none
+```bash
 $ sudo ln -s $HOMA_BASEDIR/misc/systemd/homa@.service /etc/systemd/system/multi-user.target.wants/homa@energy.service
 $ sudo systemctl --system daemon-reload
 $ sudo systemctl start homa@energy.service
 ```
 
-Logs are then availble in the systemd journal 
+Logs are then available in the systemd journal 
 ```
 $ sudo journalctl -u homa@energy.service -n 100 -f
 ```
@@ -48,7 +48,7 @@ This is based on the work of [Tobias Lorenz](https://bitbucket.org/tobylorenz/sm
 
 ### Installation
 Install the required dependencies
-```none
+```bash
 $ apt-get install libmosquittopp-dev
 $ git clone https://github.com/hmueller01/libsml.git
 $ cd libsml
@@ -57,7 +57,7 @@ $ sudo make install
 $ cd ..
 ```
 Build and install `sml2mqtt`
-```none
+```bash
 $ mkdir build; cd build
 $ cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
 $ make
@@ -66,7 +66,7 @@ $ sudo make install
 
 ### Usage
 Start the application manually
-```none
+```bash
 sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device] -v
 ```
 
@@ -74,12 +74,14 @@ sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P passw
 If your system supports it, you can start the application as a daemon from systemd by using the provided template.
 
 Modify `/usr/local/lib/systemd/system/sml2mqtt.service` to your needs.
-```none
+```bash
 $ sudo systemctl --system daemon-reload
+$ sudo systemctl stop sml2mqtt.service
 $ sudo systemctl start sml2mqtt.service
 ```
 
-Logs are then availble in the systemd journal
-```none
+Logs are then available in the systemd journal and other commands
+```bash
 $ sudo journalctl -u sml2mqtt.service -n 100 -f
+$ sudo systemctl status sml2mqtt.service
 ```
