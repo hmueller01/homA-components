@@ -9,7 +9,7 @@ There are two possible ways to read and publish the energy values.
 
 ### Installation
 Install the required dependencies
-```none
+```bash
 $ git clone https://github.com/hmueller01/libsml.git
 $ make
 $ sudo make install
@@ -76,7 +76,7 @@ If your system supports it, you can start the application as a daemon from syste
 Modify `/usr/local/lib/systemd/system/sml2mqtt.service` to your needs.
 ```bash
 $ sudo systemctl --system daemon-reload
-$ sudo systemctl stop sml2mqtt.service
+$ sudo systemctl stop sml2mqtt.service # optional
 $ sudo systemctl start sml2mqtt.service
 ```
 
