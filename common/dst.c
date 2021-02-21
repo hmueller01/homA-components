@@ -38,7 +38,7 @@ isDST(time_t timestamp)
 	// work out if dst is active
 	// this is for Europe Daylight Saving Time
 	// modify according to your local rules
-    if (time->tm_mon < 2 || time->tm_mon > 9) {
+	if (time->tm_mon < 2 || time->tm_mon > 9) {
 		// these months are completely out of DST
 		dst = false;
 	} else if (time->tm_mon > 2 && time->tm_mon < 9) {
