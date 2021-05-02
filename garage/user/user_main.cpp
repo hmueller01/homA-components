@@ -38,6 +38,8 @@ extern "C" {
 #include "mqtt/mqtt.h"
 #include "wiringESP/wiringESP.h"
 #include "mcp23017.h"
+#include "user_telnetd.h"
+#include "user_main.h"
 }
 
 // global variables
@@ -46,8 +48,11 @@ LOCAL MQTT_Client mqttClient;
 LOCAL bool mqtt_connected = FALSE;
 LOCAL bool send_start_time = FALSE;
 LOCAL uint16_t server_version;
-LOCAL uint16_t m_cistern_timeout_time = 0; // [min]
-LOCAL uint16_t m_cistern_timeout_cnt = 0; // [min]
+uint16_t m_cistern_timeout_time = 0; // [min]
+uint16_t m_cistern_timeout_cnt = 0; // [min]
+uint8_t m_cistern_level = 0; // cistern level in percent
+bool m_cistern_status = OFF; // cistern status ON/OFF
+bool m_door_status = OFF; // garage door status OFF=open, ON=closed
 LOCAL os_timer_t sntp_timer; // time for NTP service
 LOCAL os_timer_t wps_timer; // timeout for WPS key
 LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
@@ -72,15 +77,6 @@ const char *rst_reason_text[] = {
 	"wake up from deep-sleep",    // REASON_DEEP_SLEEP_AWAKE = 5
 	"external system reset"       // REASON_EXT_SYS_RST = 6
 };
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-	uint32 user_rf_cal_sector_set(void);
-	void user_init(void);
-#ifdef __cplusplus
-}
-#endif
 
 
 /**
@@ -323,7 +319,7 @@ CisternGetPercent(uint16_t cistern_lvl)
 LOCAL void ICACHE_FLASH_ATTR
 MqttConnected_Cb(uint32_t *args)
 {
-	char app_version[20];
+	char tmp_str20[20];
 	char *rst_reason;
 	MQTT_Client *client = (MQTT_Client *) args;
 
@@ -354,15 +350,23 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level/meta/order", "3", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "4", 1, 1, TRUE);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "5", 1, 1, TRUE);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "6", 1, 1, TRUE);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "7", 1, 1, TRUE);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State/meta/order", "8", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device IP/meta/order", "6", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "7", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "8", 1, 1, TRUE);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State/meta/order", "9", 1, 1, TRUE);
 
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
 		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, TRUE);
-	itoa(app_version, APP_VERSION);
+
+	struct ip_info ip_config;
+	wifi_get_ip_info(STATION_IF, &ip_config);
+	os_sprintf(tmp_str20, IPSTR, IP2STR(&ip_config.ip.addr));
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device IP",
+		tmp_str20, os_strlen(tmp_str20), 1, TRUE);
+
+	itoa(tmp_str20, APP_VERSION);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version",
-		app_version, os_strlen(app_version), 1, TRUE);
+		tmp_str20, os_strlen(tmp_str20), 1, TRUE);
 	rst_reason = (char *) rst_reason_text[system_get_rst_info()->reason];
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason",
 		rst_reason, os_strlen(rst_reason), 1, TRUE);
@@ -391,7 +395,7 @@ MqttConnected_Cb(uint32_t *args)
 LOCAL void ICACHE_FLASH_ATTR
 MqttDisconnected_Cb(uint32_t * args)
 {
-	MQTT_Client *client = (MQTT_Client *) args;
+	//MQTT_Client *client = (MQTT_Client *) args;
 	INFO("MQTT: Disconnected" CRLF);
 	mqtt_connected = FALSE;
 }
@@ -408,7 +412,7 @@ MqttDisconnected_Cb(uint32_t * args)
 LOCAL void ICACHE_FLASH_ATTR
 MqttPublished_Cb(uint32_t * args)
 {
-	MQTT_Client *client = (MQTT_Client *) args;
+	//MQTT_Client *client = (MQTT_Client *) args;
 	//INFO("MQTT: Published" CRLF);
 }
 
@@ -487,6 +491,9 @@ WifiGotIp(void)
 	sntp_setservername(2, (char*) "time.nist.gov"); // set server 2 by domain name
 	sntp_set_timezone(1); // set Berlin timezone (GMT+1)
 	sntp_init();
+
+	// establish the telnetd configuration terminal
+	Telnetd_Init(23);
 }
 
 #ifdef WPS
@@ -634,12 +641,12 @@ LOCAL void ICACHE_FLASH_ATTR
 Main_Task(os_event_t *event_p)
 {
 	uint16_t cistern_lvl;
-	uint8_t cistern_percent;
 	char cistern_str[10];
 
 	switch (event_p->sig) {
 	case SIG_CISTERN:
 		INFO("%s: Got signal 'SIG_CISTERN'. par=%d" CRLF, __FUNCTION__, event_p->par);
+		m_cistern_status = (bool) event_p->par;
 		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern",
 				event_p->par == ON ? "1" : "0", 1, 1, TRUE);
 		digitalWrite(PIN_CISTERN, event_p->par);
@@ -660,14 +667,15 @@ Main_Task(os_event_t *event_p)
 		delay(50); // wait 50 ms to settle measurement
 		cistern_lvl = m_mcp23017.digitalRead16() & 0x03FF;
 		m_mcp23017.digitalWrite(CISTERN_LVL_BTN, HIGH); // stop measurement (BTN off)
-		cistern_percent = CisternGetPercent(cistern_lvl);
-		itoa(cistern_str, cistern_percent);
+		m_cistern_level = CisternGetPercent(cistern_lvl);
+		itoa(cistern_str, m_cistern_level);
 		INFO("%s: MCP23017 cistern_lvl=0x%X, cistern_percent=%s" CRLF, __FUNCTION__, cistern_lvl, cistern_str);
 		MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Cistern level",
 			cistern_str, os_strlen(cistern_str), 1, TRUE);
 		break;
 	case SIG_DOOR_CHANGE:
 		INFO("%s: Got signal 'SIG_DOOR_CHANGE'. par=%d" CRLF, __FUNCTION__, event_p->par);
+		m_door_status = (bool) event_p->par;
 		if (OFF == event_p->par) {
 			MQTT_Publish(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/Garage door",
 					"open", 4, 1, TRUE);
