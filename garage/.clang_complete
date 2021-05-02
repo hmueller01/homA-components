@@ -1,0 +1,6 @@
+-Iinclude
+-Icommon
+-Imodules
+-Iuser
+-I/opt/Espressif/ESP8266_NONOS_SDK-3.0.4/include
+-I/opt/Espressif/local/include
