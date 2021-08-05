@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8
 # min_max_saver is a universal min/max saver used by HomA framework.
 # Listens to the following topics:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Reads gas meter pules from Raspberry pin and sends it to a
 # MQTT broker used by HomA framework.
 # Holger Mueller
