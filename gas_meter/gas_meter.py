@@ -130,9 +130,8 @@ while True:
 			if GPIO.input(GPIO_PIN) == GPIO.LOW:
 				if DEBUG: print("ERROR: Input pin is LOW after a RISING edge!")
 				break
-			gas_counter += RESOLUTION
-			rate = RESOLUTION / (millis - lmillis) * 1000 * 3600
-			rate = round(rate * 1000) / 1000 # do limit precision 3 digits after dot
+			gas_counter = round(gas_counter + RESOLUTION, 5)
+			rate = round(RESOLUTION / (millis - lmillis) * 1000 * 3600, 3) # do limit precision 3 digits after dot
 			mqttc.publish(get_topic("controls", CONTROL), gas_counter, retain=True)
 			mqttc.publish(get_topic("controls", "Timestamp"), timestamp, retain=True)
 			mqttc.publish(get_topic("controls", "Flow rate"), rate, retain=True)
