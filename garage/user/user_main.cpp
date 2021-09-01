@@ -58,16 +58,8 @@ LOCAL os_timer_t wps_timer; // timeout for WPS key
 LOCAL os_timer_t cistern_lvl_timer; // timer to read cistern level
 LOCAL os_timer_t m_cistern_timeout_timer; // timer to timeout cistern pump
 LOCAL os_timer_t debounce_pin_timer; // timer to read pins debounced
-#define MAIN_TASK_PRIO        USER_TASK_PRIO_0
 #define MAIN_TASK_QUEUE_LEN   1
 LOCAL os_event_t main_task_queue[MAIN_TASK_QUEUE_LEN];
-// user main task signals
-enum sig_main_task {
-	SIG_CISTERN = 0,
-	SIG_DOOR_CHANGE,
-	SIG_UPGRADE,
-	SIG_CISTERN_LVL,
-};
 const char *rst_reason_text[] = {
 	"normal startup by power on", // REASON_DEFAULT_RST = 0
 	"hardware watch dog reset",   // REASON_WDT_RST = 1

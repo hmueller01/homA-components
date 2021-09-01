@@ -15,6 +15,17 @@ extern "C" {
 }
 #endif
 
+// task priority of main task
+#define MAIN_TASK_PRIO        USER_TASK_PRIO_0
+
+// user main task signals
+enum sig_main_task {
+	SIG_CISTERN = 0,
+	SIG_DOOR_CHANGE,
+	SIG_UPGRADE,
+	SIG_CISTERN_LVL,
+};
+
 extern uint16_t m_cistern_timeout_time;
 extern uint16_t m_cistern_timeout_cnt;
 extern uint8_t m_cistern_level;

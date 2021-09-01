@@ -111,8 +111,8 @@ RecvCb_Listen(void *arg, char *usrdata_p, unsigned short length)
 		if (!os_strcmp(recvbuffer_p, "help")) {
 			char send_data[] = "Possible commands:" CRLF
 					"info - print info and current settings" CRLF
-					"//get - get current sensor values" CRLF
-					"//set <param>=<value> - enter 'help set' for more information" CRLF
+					"get - get current cistern values" CRLF
+					"set <param>=<value> - enter 'help set' for more information" CRLF
 					"restart - restart ESP8266 module" CRLF
 					"exit - exit connection" CRLF
 					PROMPT;
@@ -120,7 +120,7 @@ RecvCb_Listen(void *arg, char *usrdata_p, unsigned short length)
 		} else if (!os_strcmp(recvbuffer_p, "help set")) {
 			char send_data[] = "set <param>=<value> help" CRLF
 					"Possible parameter <param>:" CRLF
-					"Not implemented" CRLF
+					"cistern - switch cistern pump \"on\" or \"off\"" CRLF
 					PROMPT;
 			espconn_send(esp_conn_p, (uint8_t *) send_data, strlen(send_data));
 		} else if (!os_strcmp(recvbuffer_p, "close") ||
@@ -165,16 +165,42 @@ RecvCb_Listen(void *arg, char *usrdata_p, unsigned short length)
 					m_cistern_timeout_cnt, m_cistern_timeout_time);
 			espconn_send(esp_conn_p, (uint8_t *) send_data, strlen(send_data));
 		} else if (!os_strcmp(recvbuffer_p, "get")) {
-			char send_data[256];
-			os_sprintf(send_data,
-					"Not implemented" CRLF
-					PROMPT);
+			char send_data[256] = {0};
+
+			// post signal to UserMainTask to read cistern level
+			system_os_post(MAIN_TASK_PRIO, SIG_CISTERN_LVL, 0);
+			os_sprintf(send_data, "Reading cistern level in main task ..." CRLF PROMPT);
 			espconn_send(esp_conn_p, (uint8_t *) send_data, strlen(send_data));
 		} else if (!os_strncmp(recvbuffer_p, "set ", 4)) {
-			char send_data[256];
-			os_sprintf(send_data,
-					"Not implemented" CRLF
-					PROMPT);
+			char send_data[256] = {0};
+			char *param_p;
+			char *value_p;
+
+			param_p = recvbuffer_p + 4; // skip "set "
+			value_p = (char *) os_strstr(param_p, "=");
+			if (value_p != NULL) {
+				// terminate param with \0 (replace the "=")
+				value_p[0] = 0x00;
+				// set value pointer after "=" now \0
+				value_p++;
+				if (!os_strcmp(param_p, "cistern")) {
+					if (!os_strcmp(value_p, "on")) {
+						os_sprintf(send_data, "Switch cistern pump on.");
+						// post signal to UserMainTask to switch cistern pump
+						system_os_post(MAIN_TASK_PRIO, SIG_CISTERN, ON);
+					} else {
+						os_sprintf(send_data, "Switch cistern pump off.");
+						// post signal to UserMainTask to switch cistern pump
+						system_os_post(MAIN_TASK_PRIO, SIG_CISTERN, OFF);
+					}
+				} else {
+					os_sprintf(send_data, "Unknown param '%s'.", param_p);
+				}
+			} else {
+				os_sprintf(send_data, "No value found (missing '=') for param '%s'.", param_p);
+			}
+			DEBUG("%s" CRLF, send_data);
+			os_strcat(send_data, CRLF PROMPT);
 			espconn_send(esp_conn_p, (uint8_t *) send_data, strlen(send_data));
 		} else if (os_strlen(recvbuffer_p) != 0) {
 			char send_data[256];
