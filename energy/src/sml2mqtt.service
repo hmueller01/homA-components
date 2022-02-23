@@ -1,10 +1,13 @@
+# This file is a systemd service for sml2mqtt.
+
 [Unit]
 Description=Capture SML meter readings and publishes them on MQTT HomA framework
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/sml2mqtt -h server -u user -P password -d /dev/vzir0
+EnvironmentFile=/etc/homa/homa.conf
+ExecStart=/usr/local/sbin/sml2mqtt -h ${HOMA_BROKER_HOST} -u user -P password -d /dev/vzir0
 Restart=always
 
 [Install]
