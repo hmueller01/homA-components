@@ -37,7 +37,8 @@ XTENSA_TOOLS_ROOT ?= $(ESP_ROOT)/xtensa-lx106-elf/bin
 SDK_BASE	?= $(ESP_ROOT)/ESP8266_NONOS_SDK-3.0.4
 
 # esptool.py path and port
-ESPTOOL		?= $(XTENSA_TOOLS_ROOT)/esptool.py
+#ESPTOOL		?= $(XTENSA_TOOLS_ROOT)/esptool.py
+ESPTOOL		?= esptool.py
 #ESPPORT		?= /dev/tty.SLAB_USBtoUART
 ESPPORT		?= /dev/tty.usbserial-1430
 
@@ -289,6 +290,8 @@ flash: $(FW_FILE_OTA)
 	$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio 0x00000 $(FW_FILE_ESP_BOOT) $(FW_ADDR_OTA) $(FW_FILE_OTA) $(FW_ADDR_OTA2) $(FW_FILE_OTA2) $(FW_ADDR_ESP_INIT) $(FW_FILE_ESP_INIT) $(FW_ADDR_ESP_BLANK) $(FW_FILE_ESP_BLANK) $(FW_ADDR_CA_CERT) $(FW_FILE_CA_CERT)
 	# only write compiled code
 	#$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio $(FW_ADDR_OTA) $(FW_FILE_OTA) $(FW_ADDR_OTA2) $(FW_FILE_OTA2)
+	# only write ca cert file
+	#$(ESPTOOL) --port $(ESPPORT) write_flash -fm dio $(FW_ADDR_CA_CERT) $(FW_FILE_CA_CERT)
 endif
 
 connect:

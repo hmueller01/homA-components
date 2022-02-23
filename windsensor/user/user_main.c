@@ -38,7 +38,7 @@ http://www.danielcasner.org/guidelines-for-writing-code-for-the-esp8266/
 // global variables
 LOCAL MQTT_Client mqttClient;
 LOCAL bool mqtt_connected = false;
-LOCAL bool send_start_time = false;
+LOCAL bool send_start_time = false; // true after start time was send once to broker
 LOCAL struct keys_param keys;
 LOCAL struct single_key_param *single_key[KEY_NUM];
 LOCAL os_timer_t speed_timer;
@@ -168,7 +168,7 @@ CheckSntpStamp_Cb(void *arg)
  ******************************************************************
  * @brief  MQTT callback broker connected.
  * @author Holger Mueller
- * @date   2017-06-08, 2017-07-06, 2017-07-11, 2017-11-02
+ * @date   2017-06-08, 2017-07-06, 2017-07-11, 2017-11-02, 2022-02-21
  * Subscribes to /sys topics, publishes HomA /devices/ structure.
  *
  * @param  args - MQTT_Client structure pointer.
@@ -177,7 +177,7 @@ CheckSntpStamp_Cb(void *arg)
 LOCAL void ICACHE_FLASH_ATTR
 MqttConnected_Cb(uint32_t *args)
 {
-	char app_version[20];
+	char tmp_str20[20];
 	char *rst_reason;
 	MQTT_Client *client = (MQTT_Client *) args;
 
@@ -191,23 +191,34 @@ MqttConnected_Cb(uint32_t *args)
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/room", HOMA_ROOM, os_strlen(HOMA_ROOM), 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/meta/name", HOMA_DEVICE, os_strlen(HOMA_DEVICE), 1, 1);
 
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Wind speed/meta/order", "1", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "2", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "3", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device IP/meta/order", "4", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "5", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "6", 1, 1, 1);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State/meta/order", "7", 1, 1, 1);
+
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Wind speed/meta/type", "text", 4, 1, 1);
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Wind speed/meta/unit", " km/h", 5, 1, 1);
 
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Wind speed/meta/order", "1", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Start time/meta/order", "2", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason/meta/order", "3", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id/meta/order", "4", 1, 1, 1);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version/meta/order", "5", 1, 1, 1);
-
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
-		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, 1);
-	itoa(app_version, APP_VERSION);
-	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version",
-		app_version, os_strlen(app_version), 1, 1);
 	rst_reason = (char *) rst_reason_text[system_get_rst_info()->reason];
 	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Reset reason",
 		rst_reason, os_strlen(rst_reason), 1, 1);
+
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device id",
+		sysCfg.device_id, os_strlen(sysCfg.device_id), 1, 1);
+
+	struct ip_info ip_config;
+	wifi_get_ip_info(STATION_IF, &ip_config);
+	os_sprintf(tmp_str20, IPSTR, IP2STR(&ip_config.ip.addr));
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Device IP", tmp_str20, os_strlen(tmp_str20), 1, TRUE);
+
+	itoa(tmp_str20, APP_VERSION);
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/Version",
+		tmp_str20, os_strlen(tmp_str20), 1, 1);
+	// set LWT message, that we are alive
+	MQTT_Publish(client, "/devices/" HOMA_SYSTEM_ID "/controls/State", "online", 6, 1, TRUE);
 
 	// do only resend start time if we reboot,
 	// do not if we got a Wifi reconnect ...
@@ -613,7 +624,7 @@ user_init(void)
 	MQTT_InitConnection(&mqttClient, MQTT_HOST, MQTT_PORT, MQTT_SECURITY);
 	//MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
 	MQTT_InitClient(&mqttClient, sysCfg.device_id, MQTT_USER, MQTT_PASS, MQTT_KEEPALIVE, 1);
-	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
+	MQTT_InitLWT(&mqttClient, "/devices/" HOMA_SYSTEM_ID "/controls/State", "offline", 1, TRUE);
 	MQTT_OnConnected(&mqttClient, MqttConnected_Cb);
 	MQTT_OnDisconnected(&mqttClient, MqttDisconnected_Cb);
 	MQTT_OnPublished(&mqttClient, MqttPublished_Cb);
