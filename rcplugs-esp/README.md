@@ -40,7 +40,7 @@ Start the ESP8266 board in boot mode and flash the firmware
 ```bash
 $ make ESP_ROOT=/opt/Espressif flash
 ```
-Once it is running it can be updated by FOTA. Increase the ```APP_VERSION``` in ```include/user_config.h``` and trigger the update by
+Once it is running it can be updated by FOTA. Increase the `APP_VERSION` in `include/user_config.h` and trigger the update by
 ```bash
 $ make ESP_ROOT=/opt/Espressif publish
 ```

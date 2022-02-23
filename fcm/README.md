@@ -10,15 +10,15 @@ subscribed to the e.g. `news` topic.
 is subscribed to the `news` topic.
 
 ### Installation
-```
+```shell
 $ npm install
 ```
-* Download ```service-account.json``` from [Firebase Console](https://console.firebase.google.com) and save in the folder as configured in ```fcm.js```.
-* Copy ```fcm-options-example.json``` to ```fcm-options.json```
-* Modify ```fcm-options.json``` to your needs, e.g. to connect to the MQTT broker.
+* Download `service-account.json` from [Firebase Console](https://console.firebase.google.com) and save in the folder as configured in `fcm.js`.
+* Copy `fcm-options-example.json` to `fcm-options.json`
+* Modify `fcm-options.json` to your needs, e.g. to connect to the MQTT broker.
 
 ### Start
 Start the application.
-``` 
+```shell
 $ ./fcm.js [--brokerHost 127.0.0.1] [--brokerPort 1883] [--systemId $SYSTEMID]
 ```
