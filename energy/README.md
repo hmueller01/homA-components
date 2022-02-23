@@ -15,7 +15,7 @@ $ make
 $ sudo make install
 ```
 Create a `mqtt_config.py` file with this content:
-```none
+```python
 host = "localhost"
 port = 1883
 user = ""
@@ -38,10 +38,9 @@ $ sudo systemctl start homa@energy.service
 ```
 
 Logs are then available in the systemd journal 
-```
+```bash
 $ sudo journalctl -u homa@energy.service -n 100 -f
 ```
-
 
 ## 2. C++ approach
 This is based on the work of [Tobias Lorenz](https://bitbucket.org/tobylorenz/sml2mqtt/overview).
@@ -73,7 +72,7 @@ sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P passw
 ### Systemd
 If your system supports it, you can start the application as a daemon from systemd by using the provided template.
 
-Modify `/usr/local/lib/systemd/system/sml2mqtt.service` to your needs.
+Modify `/usr/local/lib/systemd/system/sml2mqtt.service` and `/etc/homa/homa.conf` to your needs.
 ```bash
 $ sudo systemctl --system daemon-reload
 $ sudo systemctl stop sml2mqtt.service # optional
