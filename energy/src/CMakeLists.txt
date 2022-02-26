@@ -24,7 +24,9 @@ add_executable(sml2mqtt "")
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}/src
-    ${Boost_INCLUDE_DIRS})
+    ${Boost_INCLUDE_DIRS}
+    ${LIBSML_INCLUDE_DIRS}
+    ${LIBMOSQUITTOPP_INCLUDE_DIRS})
 
 # sources/headers
 target_sources(sml2mqtt
@@ -41,9 +43,10 @@ set_target_properties(sml2mqtt PROPERTIES
     SOVERSION ${PROJECT_VERSION_MAJOR}
     VERSION ${PROJECT_VERSION})
 target_link_libraries(sml2mqtt
-    mosquittopp
     pthread
-    ${LIBSML_LIBRARY})
+    yaml-cpp
+    ${LIBSML_LIBRARIES}
+    ${LIBMOSQUITTOPP_LIBRARIES})
 
 # install
 install(
