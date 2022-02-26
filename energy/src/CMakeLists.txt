@@ -57,3 +57,10 @@ if(OPTION_WITH_SYSTEMD)
         FILES ${CMAKE_CURRENT_SOURCE_DIR}/sml2mqtt.service
         DESTINATION lib/systemd/system)
 endif(OPTION_WITH_SYSTEMD)
+install(CODE "
+   if(NOT EXISTS \"${CMAKE_INSTALL_PREFIX}/etc/sml2mqtt.yaml\")
+       file(INSTALL \"${CMAKE_CURRENT_SOURCE_DIR}/sml2mqtt.yaml\" DESTINATION \"${CMAKE_INSTALL_PREFIX}/etc\" FILE_PERMISSIONS OWNER_WRITE OWNER_READ)
+   else()
+       message(STATUS \"Not-Installing: ${CMAKE_INSTALL_PREFIX}/etc/sml2mqtt.yaml - File already exists!\")
+   endif()
+")
