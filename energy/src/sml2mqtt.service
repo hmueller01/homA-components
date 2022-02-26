@@ -7,7 +7,7 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/homa/homa.conf
-ExecStart=/usr/local/sbin/sml2mqtt -h ${HOMA_BROKER_HOST} -u user -P password -d /dev/vzir0
+ExecStart=/usr/local/sbin/sml2mqtt -c /usr/local/etc/sml2mqtt.yaml -h ${HOMA_BROKER_HOST} -p ${HOMA_BROKER_PORT}
 Restart=always
 
 [Install]
