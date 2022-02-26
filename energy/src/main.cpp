@@ -42,6 +42,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <thread>
+#include <yaml-cpp/yaml.h>
 
 /* project internal includes */
 #include "SML.h"
@@ -69,11 +70,47 @@ int main(int argc, char ** argv)
     std::string username = "";
     std::string password = "";
     std::string device = "/dev/vzir0";
+    YAML::Node config;
 
     /* evaluate command line parameters */
     int c;
-    while ((c = getopt(argc, argv, "h:p:q:t:i:u:P:d:v?")) != -1) {
+    while ((c = getopt(argc, argv, "c:h:p:q:t:i:u:P:d:v?")) != -1) {
         switch (c) {
+        case 'c':
+            config = YAML::LoadFile(optarg);
+            if (config["host"]) {
+                host = config["host"].as<std::string>();
+                if (verbose) std::cout << "Using config host: " << host << "\n";
+            }
+            if (config["port"]) {
+                port = config["port"].as<int>();
+                if (verbose) std::cout << "Using config port: " << port << "\n";
+            }
+            if (config["qos"]) {
+                qos = config["qos"].as<int>();
+                if (verbose) std::cout << "Using config qos: " << qos << "\n";
+            }
+            if (config["topic"]) {
+                topic = config["topic"].as<std::string>();
+                if (verbose) std::cout << "Using config topic: " << topic << "\n";
+            }
+            if (config["id"]) {
+                id = config["id"].as<std::string>();
+                if (verbose) std::cout << "Using config id: " << id << "\n";
+            }
+            if (config["username"]) {
+                username = config["username"].as<std::string>();
+                if (verbose) std::cout << "Using config username: " << username << "\n";
+            }
+            if (config["password"]) {
+                password = config["password"].as<std::string>();
+                if (verbose) std::cout << "Using config password: " << password << "\n";
+            }
+            if (config["device"]) {
+                device = config["device"].as<std::string>();
+                if (verbose) std::cout << "Using config device: " << device << "\n";
+            }
+            break;
         case 'h':
             host = optarg;
             break;
@@ -102,7 +139,17 @@ int main(int argc, char ** argv)
             verbose = true;
             break;
         default:
-            std::cout << "Usage: sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device] -v" << std::endl;
+            std::cout << "Usage: sml2mqtt [-v] [-c config.yaml] [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device]" << std::endl
+                << "-v: Be verbose, use this first to get all verbose messages" << std::endl
+                << "-c: Use YAML config file <config.yaml> (can be combined with other options)" << std::endl
+                << "-h: hostname of broker" << std::endl
+                << "-p: port of broker" << std::endl
+                << "-q: QOS of messages" << std::endl
+                << "-t: MQTT topic to publish to (e.g. /devices/123456-energy/controls)" << std::endl
+                << "-i: ID of broker client (e.g. sml2mqtt)" << std::endl
+                << "-u: username" << std::endl
+                << "-p: password" << std::endl
+                << "-d: device to read sml messages from (e.g. /dev/vzir0)" << std::endl;
             return EXIT_FAILURE;
         }
     }
@@ -150,7 +197,7 @@ int main(int argc, char ** argv)
 #endif
 
     /* start publish loop */
-    while(!abortLoop) {
+    while (!abortLoop) {
 #ifdef WITH_SYSTEMD
         /* systemd notify */
         sd_notify(0, "WATCHDOG=1");
