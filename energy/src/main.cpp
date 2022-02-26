@@ -80,60 +80,68 @@ int main(int argc, char ** argv)
             config = YAML::LoadFile(optarg);
             if (config["host"]) {
                 host = config["host"].as<std::string>();
-                if (verbose) std::cout << "Using config host: " << host << "\n";
+                if (verbose) std::cout << "Using yaml config host: " << host << std::endl;
             }
             if (config["port"]) {
                 port = config["port"].as<int>();
-                if (verbose) std::cout << "Using config port: " << port << "\n";
+                if (verbose) std::cout << "Using yaml config port: " << port << std::endl;
             }
             if (config["qos"]) {
                 qos = config["qos"].as<int>();
-                if (verbose) std::cout << "Using config qos: " << qos << "\n";
+                if (verbose) std::cout << "Using yaml config qos: " << qos << std::endl;
             }
             if (config["topic"]) {
                 topic = config["topic"].as<std::string>();
-                if (verbose) std::cout << "Using config topic: " << topic << "\n";
+                if (verbose) std::cout << "Using yaml config topic: " << topic << std::endl;
             }
             if (config["id"]) {
                 id = config["id"].as<std::string>();
-                if (verbose) std::cout << "Using config id: " << id << "\n";
+                if (verbose) std::cout << "Using yaml config id: " << id << std::endl;
             }
             if (config["username"]) {
                 username = config["username"].as<std::string>();
-                if (verbose) std::cout << "Using config username: " << username << "\n";
+                if (verbose) std::cout << "Using yaml config username: " << username << std::endl;
             }
             if (config["password"]) {
                 password = config["password"].as<std::string>();
-                if (verbose) std::cout << "Using config password: " << password << "\n";
+                if (verbose) std::cout << "Using yaml config password: " << password << std::endl;
             }
             if (config["device"]) {
                 device = config["device"].as<std::string>();
-                if (verbose) std::cout << "Using config device: " << device << "\n";
+                if (verbose) std::cout << "Using yaml config device: " << device << std::endl;
             }
             break;
         case 'h':
             host = optarg;
+            if (verbose) std::cout << "Using command line config host: " << host << std::endl;
             break;
         case 'p':
             port = std::stoul(optarg);
+            if (verbose) std::cout << "Using command line config port: " << port << std::endl;
             break;
         case 'q':
             qos = std::stoul(optarg);
+            if (verbose) std::cout << "Using command line config qos: " << qos << std::endl;
             break;
         case 't':
             topic = optarg;
+            if (verbose) std::cout << "Using command line config topic: " << topic << std::endl;
             break;
         case 'i':
             id = optarg;
+            if (verbose) std::cout << "Using command line config id: " << id << std::endl;
             break;
         case 'u':
             username = optarg;
+            if (verbose) std::cout << "Using command line config username: " << username << std::endl;
             break;
         case 'P':
             password = optarg;
+            if (verbose) std::cout << "Using command line config password: " << password << std::endl;
             break;
         case 'd':
             device = optarg;
+            if (verbose) std::cout << "Using command line config device: " << device << std::endl;
             break;
         case 'v':
             verbose = true;
