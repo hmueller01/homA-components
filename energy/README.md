@@ -48,7 +48,7 @@ This is based on the work of [Tobias Lorenz](https://bitbucket.org/tobylorenz/sm
 ### Installation
 Install the required dependencies
 ```bash
-$ apt-get install libmosquittopp-dev
+$ apt-get install libmosquittopp-dev libyaml-cpp-dev
 $ git clone https://github.com/hmueller01/libsml.git
 $ cd libsml
 $ make
@@ -65,8 +65,20 @@ $ sudo make install
 
 ### Usage
 Start the application manually
-```bash
-sml2mqtt [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device] -v
+```none
+sml2mqtt [-v] [-c config.yaml] [-h host] [-p port] [-q qos] [-t topic] [-i id] [-u username] [-P password] [-d device]
+```
+You can eighter use the command line parameter or define some or all options in an `config.yaml`:
+```yaml
+# Config file of sml2mqtt
+host: localhost
+port: 1883
+qos: 1
+topic: /devices/123456-energy/controls
+id: sml2mqtt
+username: user
+password: pass
+device: /dev/vzir0
 ```
 
 ### Systemd
