@@ -56,7 +56,7 @@ function getAccessToken() {
  * @param {JSON} fcmMessage will make up the body of the request.
  */
 function sendFcmMessage(fcmMessage) {
-	getAccessToken().then(function(accessToken) {
+	return getAccessToken().then(function(accessToken) {
 		var options = {
 			hostname: HOST,
 			path: PATH,
@@ -81,6 +81,8 @@ function sendFcmMessage(fcmMessage) {
 
 		request.write(JSON.stringify(fcmMessage));
 		request.end();
+	}).catch(function(err) {
+		console.error('Unable to get Firebase access token or send message:', err);
 	});
 }
 
